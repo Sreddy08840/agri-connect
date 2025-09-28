@@ -1,0 +1,251 @@
+// This is your Prisma schema file for SQLite
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id            String   @id @default(cuid())
+  phone         String   @unique
+  name          String
+  email         String?
+  avatarUrl     String?
+  address       String?  // Changed from Json to String
+  verified      Boolean  @default(false)
+  role          String   @default("CUSTOMER") // Changed from enum to String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  passwordHash  String?  // Added for password-based auth (2FA with OTP)
+  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret String?
+  backupCodes   String?  // JSON string of backup codes
+  emailVerified Boolean  @default(false)
+  emailVerificationToken String?
+  emailVerificationExpires DateTime?
+  passwordResetToken String?
+  passwordResetExpires DateTime?
+
+  // Relations
+  farmerProfile FarmerProfile?
+  cart          Cart?
+  orders        Order[]
+  messages      Message[]
+  auditLogs     AdminAuditLog[]
+  products      Product[]
+
+  @@map("users")
+}
+
+model FarmerProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  businessName    String
+  description     String?
+  address         String?
+  gstin           String?
+  deliveryZones   String?  // Changed from Json to String
+  payoutAccount   String?  // Changed from Json to String
+  ratingAvg       Float    @default(0)
+  totalSales      Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders          Order[]
+  payouts         Payout[]
+
+  @@map("farmer_profiles")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  image       String?
+  parentId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryHierarchy")
+  products    Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  price         Float    // Changed from Decimal to Float
+  unit          String
+  minOrderQty   Int      @default(1)
+  stockQty      Int      @default(0)
+  images        String?  // JSON string of image URLs array
+  status        String   @default("DRAFT") // Changed from enum to String
+  featured      Boolean  @default(false)
+  categoryId    String
+  farmerId      String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  category      Category   @relation(fields: [categoryId], references: [id])
+  farmer        User       @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+
+  @@map("products")
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  // Relations
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id                String   @id @default(cuid())
+  cartId            String
+  productId         String
+  qty               Int
+  unitPriceSnapshot Float    // Changed from Decimal to Float
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  cart              Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId])
+  @@map("cart_items")
+}
+
+model Order {
+  id              String   @id @default(cuid())
+  orderNumber     String   @unique
+  customerId      String
+  farmerId        String
+  total           Float    // Changed from Decimal to Float
+  status          String   @default("PLACED") // Changed from enum to String
+  paymentMethod   String   // Changed from enum to String
+  addressSnapshot String   // Changed from Json to String
+  deliverySlot    String?  // Changed from Json to String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  customer        User         @relation(fields: [customerId], references: [id])
+  farmer          FarmerProfile @relation(fields: [farmerId], references: [id])
+  items           OrderItem[]
+  payment         Payment?
+  messages        Message[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  productId String
+  qty       Int
+  unitPrice Float    // Changed from Decimal to Float
+  createdAt DateTime @default(now())
+
+  // Relations
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  orderId       String   @unique
+  amount        Float    // Changed from Decimal to Float
+  status        String   @default("PENDING") // Changed from enum to String
+  paymentId     String?  // Razorpay payment ID
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+model Payout {
+  id          String   @id @default(cuid())
+  farmerId    String
+  amount      Float    // Changed from Decimal to Float
+  status      String   @default("DUE") // Changed from enum to String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  farmer      FarmerProfile @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+
+  @@map("payouts")
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  orderId     String
+  senderId    String
+  body        String
+  attachments String?  // Changed from Json to String
+  createdAt   DateTime @default(now())
+
+  // Relations
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  sender      User     @relation(fields: [senderId], references: [id])
+
+  @@map("messages")
+}
+
+model Voucher {
+  id            String   @id @default(cuid())
+  code          String   @unique
+  type          String   // Changed from enum to String
+  value         Float    // Changed from Decimal to Float
+  minCartTotal  Float?   // Changed from Decimal to Float
+  maxUses       Int?
+  usedCount     Int      @default(0)
+  expiresAt     DateTime?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("vouchers")
+}
+
+model AdminAuditLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  action    String
+  before    String?  // Changed from Json to String
+  after     String?  // Changed from Json to String
+  createdAt DateTime @default(now())
+
+  // Relations
+  admin     User     @relation(fields: [adminId], references: [id])
+
+  @@map("admin_audit_logs")
+}

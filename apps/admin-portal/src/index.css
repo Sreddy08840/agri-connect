@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global base reset tailored for admin portal */
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: #f8fafc; /* gray-50 */
+  color: #0f172a; /* slate-900 */
+}
+
+#root {
+  width: 100%;
+}
+
+/* Red admin theme utilities */
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 transition-colors;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-md bg-white text-red-700 border border-red-200 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors;
+  }
+  .input-primary {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white placeholder-gray-400;
+  }
+  .select-primary {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white;
+  }
+  .badge-muted {
+    @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800;
+  }
+  .card {
+    @apply bg-white border border-gray-200 rounded-lg shadow-sm;
+  }
+}

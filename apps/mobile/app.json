@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Agri-Connect",
+    "slug": "agri-connect",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#16a34a"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.agriconnect.mobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#16a34a"
+      },
+      "package": "com.agriconnect.mobile"
+    },
+    "web": {},
+    "plugins": [
+      "expo-notifications",
+      "expo-image-picker"
+    ],
+    "extra": {}
+  }
+}

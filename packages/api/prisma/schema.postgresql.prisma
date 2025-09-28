@@ -1,0 +1,314 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+enum UserRole {
+  CUSTOMER
+  FARMER
+  ADMIN
+}
+
+enum ProductStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum OrderStatus {
+  PLACED
+  ACCEPTED
+  REJECTED
+  PACKED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  REFUNDED
+  COD_DUE
+}
+
+enum PaymentMethod {
+  ONLINE
+  COD
+}
+
+enum PayoutStatus {
+  DUE
+  PROCESSING
+  PAID
+}
+
+enum VoucherType {
+  PERCENT
+  FLAT
+}
+
+model User {
+  id            String   @id @default(cuid())
+  role          UserRole @default(CUSTOMER)
+  name          String
+  phone         String   @unique
+  email         String?
+  avatarUrl     String?
+  address       Json?
+  verified      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  farmerProfile FarmerProfile?
+  products      Product[]
+  cart          Cart?
+  orders        Order[] @relation("CustomerOrders")
+  farmerOrders  Order[] @relation("FarmerOrders")
+  payouts       Payout[]
+  chats         Chat[] @relation("CustomerChats")
+  farmerChats   Chat[] @relation("FarmerChats")
+  messages      Message[]
+  reviews       Review[]
+  farmerReviews Review[] @relation("FarmerReviews") // <-- Added to fix relation
+  auditLogs     AdminAuditLog[]
+
+  @@map("users")
+}
+
+model FarmerProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  businessName  String
+  gstin         String?
+  deliveryZones Json?
+  payoutAccount Json?
+  ratingAvg     Float    @default(0)
+  paused        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("farmer_profiles")
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  parentId  String?
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryHierarchy")
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id           String        @id @default(cuid())
+  farmerId     String
+  categoryId   String
+  name         String
+  description  String?
+  price        Decimal       @db.Decimal(10, 2)
+  unit         String
+  qualityGrade String?
+  stockQty     Int           @default(0)
+  minOrderQty  Int           @default(1)
+  images       Json?
+  status       ProductStatus @default(DRAFT)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  // Relations
+  farmer     User         @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  category   Category     @relation(fields: [categoryId], references: [id])
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  reviews    Review[]
+
+  @@map("products")
+}
+
+model Cart {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id                String  @id @default(cuid())
+  cartId            String
+  productId         String
+  qty               Int
+  unitPriceSnapshot Decimal @db.Decimal(10, 2)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId])
+  @@map("cart_items")
+}
+
+model Order {
+  id            String        @id @default(cuid())
+  userId        String
+  farmerId      String
+  total         Decimal       @db.Decimal(10, 2)
+  status        OrderStatus   @default(PLACED)
+  paymentStatus PaymentStatus @default(PENDING)
+  paymentMethod PaymentMethod
+  addressSnapshot Json
+  deliverySlot  Json?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  customer User        @relation("CustomerOrders", fields: [userId], references: [id])
+  farmer   User        @relation("FarmerOrders", fields: [farmerId], references: [id])
+  items    OrderItem[]
+  chat     Chat?
+  reviews  Review[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  qty       Int
+  unitPrice Decimal @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+
+  // Relations
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+model Payout {
+  id          String       @id @default(cuid())
+  farmerId    String
+  amount      Decimal      @db.Decimal(10, 2)
+  status      PayoutStatus @default(DUE)
+  periodStart DateTime
+  periodEnd   DateTime
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  farmer User @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+
+  @@map("payouts")
+}
+
+model Chat {
+  id         String   @id @default(cuid())
+  orderId    String   @unique
+  customerId String
+  farmerId   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  order    Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customer User      @relation("CustomerChats", fields: [customerId], references: [id])
+  farmer   User      @relation("FarmerChats", fields: [farmerId], references: [id])
+  messages Message[]
+
+  @@map("chats")
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  chatId     String
+  senderId   String
+  body       String
+  attachments Json?
+  createdAt  DateTime @default(now())
+
+  // Relations
+  chat   Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender User @relation(fields: [senderId], references: [id])
+
+  @@map("messages")
+}
+
+model Voucher {
+  code           String      @id
+  type           VoucherType
+  value          Decimal     @db.Decimal(10, 2)
+  minCartTotal   Decimal?    @db.Decimal(10, 2)
+  startsAt       DateTime
+  endsAt         DateTime
+  active         Boolean     @default(true)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@map("vouchers")
+}
+
+model Review {
+  id              String   @id @default(cuid())
+  orderId         String
+  productId       String
+  reviewerId      String
+  targetFarmerId  String
+  rating          Int
+  comment         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  order         Order   @relation(fields: [orderId], references: [id])
+  product       Product @relation(fields: [productId], references: [id])
+  reviewer      User    @relation(fields: [reviewerId], references: [id])
+  targetFarmer  User    @relation("FarmerReviews", fields: [targetFarmerId], references: [id])
+
+  @@unique([orderId, reviewerId])
+  @@map("reviews")
+}
+
+model AdminAuditLog {
+  id        String   @id @default(cuid())
+  actorId   String
+  entity    String
+  entityId  String
+  action    String
+  before    Json?
+  after     Json?
+  createdAt DateTime @default(now())
+
+  // Relations
+  actor User @relation(fields: [actorId], references: [id])
+
+  @@map("admin_audit_logs")
+}

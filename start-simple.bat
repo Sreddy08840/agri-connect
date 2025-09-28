@@ -1,0 +1,9 @@
+@echo off
+echo Starting Agri-Connect Multi-Language Demo...
+echo.
+echo Opening browser to demo page...
+start http://localhost:8080/demo.html
+echo.
+echo Starting simple HTTP server...
+cd apps\web
+python -m http.server 8080
