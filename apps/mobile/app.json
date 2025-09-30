@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "AgriConnect Mobile",
+    "slug": "agri-connect-mobile",
+    "scheme": "agriconnect",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.agri.connect.mobile"
+    },
+    "android": {
+      "package": "com.agri.connect.mobile"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "extra": {
+      "apiUrl": "http://localhost:3000"
+    }
+  }
+}
