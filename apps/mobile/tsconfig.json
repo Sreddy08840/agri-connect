@@ -8,7 +8,7 @@
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["react", "react-native"],
+    "types": ["expo-router", "react", "react-native"],
     "baseUrl": "."
   },
   "extends": "expo/tsconfig.base"

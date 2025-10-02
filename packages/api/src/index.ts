@@ -25,7 +25,12 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:3000',
+      /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:\d+$/,  // Allow any local network IP for mobile
+    ],
     methods: ['GET', 'POST'],
   },
 });
@@ -38,7 +43,9 @@ app.use(cors({
   origin: [
     'http://localhost:5173',
     'http://localhost:5174', 
-    'http://localhost:3000'  // Admin portal
+    'http://localhost:3000',  // Admin portal
+    'http://192.168.30.223:5173', // Web app from network
+    /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:\d+$/,  // Allow any local network IP
   ],
   credentials: true,
 }));

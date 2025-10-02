@@ -22,7 +22,21 @@
       "bundler": "metro"
     },
     "extra": {
-      "apiUrl": "http://localhost:3000"
-    }
+      "apiUrl": "http://192.168.30.223:8080/api",
+      "router": {
+        "origin": false
+      }
+    },
+    "experiments": {
+      "typedRoutes": false
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": false
+        }
+      ]
+    ]
   }
 }

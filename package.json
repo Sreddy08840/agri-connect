@@ -38,7 +38,21 @@
     "@react-navigation/bottom-tabs": "^6.5.11",
     "@react-navigation/native": "^6.1.9",
     "@react-navigation/stack": "^6.3.20",
-    "expo-router": "~3.5.24",
     "tsx": "^4.20.5"
+  },
+  "pnpm": {
+    "overrides": {
+      "metro": "0.80.9",
+      "metro-cache": "0.80.9",
+      "metro-config": "0.80.9",
+      "metro-core": "0.80.9",
+      "metro-file-map": "0.80.9",
+      "metro-resolver": "0.80.9",
+      "metro-runtime": "0.80.9",
+      "metro-source-map": "0.80.9",
+      "metro-transform-worker": "0.80.9",
+      "metro-babel-transformer": "0.80.9",
+      "metro-minify-terser": "0.80.9"
+    }
   }
 }

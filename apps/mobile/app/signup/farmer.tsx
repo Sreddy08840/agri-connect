@@ -8,7 +8,7 @@ import { useRouter } from 'expo-router';
 export default function FarmerSignup() {
   const router = useRouter();
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [farmName, setFarmName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,8 +16,8 @@ export default function FarmerSignup() {
   const onSubmit = async () => {
     setLoading(true);
     try {
-      await signupFarmer({ name, email, password, farmName });
-      router.replace('/login');
+      const res = await signupFarmer({ name, phone, password, farmName });
+      router.push({ pathname: '/auth/otp', params: { pendingSessionId: res.pendingSessionId } });
     } finally {
       setLoading(false);
     }
@@ -26,10 +26,10 @@ export default function FarmerSignup() {
   return (
     <View style={styles.container}>
       <Input label="Full Name" value={name} onChangeText={setName} />
-      <Input label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" />
+      <Input label="Phone (e.g., +14155551234)" value={phone} onChangeText={setPhone} autoCapitalize="none" />
       <Input label="Password" value={password} onChangeText={setPassword} secureTextEntry />
       <Input label="Farm Name" value={farmName} onChangeText={setFarmName} />
-      <Button title={loading ? 'Creating...' : 'Create farmer account'} onPress={onSubmit} disabled={loading} />
+      <Button title={loading ? 'Sending OTP...' : 'Create farmer account'} onPress={onSubmit} disabled={loading} />
     </View>
   );
 }

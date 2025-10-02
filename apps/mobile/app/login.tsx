@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { login } from '../services/auth';
-import { setToken, setUserRole } from '../utils/storage';
+import { loginPassword } from '../services/auth';
 import Loader from '../components/Loader';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -16,11 +15,9 @@ export default function LoginScreen() {
     setLoading(true);
     setError(null);
     try {
-      const res = await login({ email, password });
-      await setToken(res.token);
-      await setUserRole(res.role);
-      if (res.role === 'farmer') router.replace('/farmer');
-      else router.replace('/customer');
+      const res = await loginPassword({ phone, password });
+      // Navigate to OTP verify screen with pending session ID
+      router.push({ pathname: '/auth/otp', params: { pendingSessionId: res.pendingSessionId } });
     } catch (e: any) {
       setError(e?.message || 'Login failed');
     } finally {
@@ -34,11 +31,11 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>AgriConnect</Text>
       <TextInput
-        placeholder="Email"
+        placeholder="Phone (e.g., +14155551234)"
         autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
+        keyboardType="phone-pad"
+        value={phone}
+        onChangeText={setPhone}
         style={styles.input}
       />
       <TextInput
@@ -50,7 +47,7 @@ export default function LoginScreen() {
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <TouchableOpacity style={styles.button} onPress={onLogin} disabled={loading}>
-        <Text style={styles.buttonText}>{loading ? 'Signing in...' : 'Login'}</Text>
+        <Text style={styles.buttonText}>{loading ? 'Sending OTP...' : 'Login'}</Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={goSignup}>
         <Text style={styles.link}>Create an account</Text>

@@ -1,17 +1,31 @@
-// Metro config for Expo Router with robust plugin resolution under pnpm
-const path = require('path');
+// apps/mobile/metro.config.js
 const { getDefaultConfig } = require('expo/metro-config');
-// Resolve expo-router package root, then require its metro-plugin
-const expoRouterPkg = require.resolve('expo-router/package.json');
-const expoRouterDir = path.dirname(expoRouterPkg);
-const { withExpoRouter } = require(path.join(expoRouterDir, 'metro-plugin'));
+const path = require('path');
 
-/** @type {import('metro-config').ConfigT} */
-const config = getDefaultConfig(__dirname);
+const projectRoot = __dirname;
+const workspaceRoot = path.resolve(projectRoot, '../..');
 
-// Allow require.context used by expo-router
-config.transformer.unstable_allowRequireContext = true;
+const config = getDefaultConfig(projectRoot);
 
-module.exports = withExpoRouter(config, {
-  appRoot: 'app',
-});
+// Set the app root for expo-router
+config.projectRoot = projectRoot;
+
+// Monorepo setup: watch workspace root
+config.watchFolders = [workspaceRoot];
+
+// Node modules resolution for monorepo
+config.resolver.nodeModulesPaths = [
+  path.resolve(projectRoot, 'node_modules'),
+  path.resolve(workspaceRoot, 'node_modules'),
+];
+
+// Ensure source extensions are correct
+config.resolver.sourceExts = ['js', 'jsx', 'json', 'ts', 'tsx', 'cjs', 'mjs'];
+
+// Use custom transformer to patch require.context in expo-router files
+config.transformer = {
+  ...config.transformer,
+  babelTransformerPath: require.resolve('./metro.transformer.js'),
+};
+
+module.exports = config;

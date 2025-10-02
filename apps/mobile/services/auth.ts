@@ -1,19 +1,42 @@
 import api from './api';
 
-export async function login(payload: { email: string; password: string }) {
-  const { data } = await api.post('/auth/login', payload);
-  // Expecting { token, role: 'farmer' | 'customer' }
-  return data;
+// Backend uses password + OTP 2-step flow under /api/auth
+
+// Step 1: login with phone+password -> returns { pendingSessionId, code? }
+export async function loginPassword(payload: { phone: string; password: string }) {
+  const { data } = await api.post('/auth/login-password', payload);
+  return data as { success?: boolean; pendingSessionId: string; code?: string };
 }
 
-export async function signupCustomer(payload: { name: string; email: string; password: string }) {
-  const { data } = await api.post('/auth/register/customer', payload);
-  return data;
+// Step 1 (register): name, phone, password, role -> returns { pendingSessionId, code? }
+export async function registerPassword(payload: { name: string; phone: string; password: string; role: 'CUSTOMER' | 'FARMER' }) {
+  const { data } = await api.post('/auth/register-password', payload);
+  return data as { success?: boolean; pendingSessionId: string; code?: string };
 }
 
-export async function signupFarmer(payload: { name: string; email: string; password: string; farmName?: string }) {
-  const { data } = await api.post('/auth/register/farmer', payload);
-  return data;
+// Step 2: verify OTP for 2FA -> returns { accessToken, refreshToken, user }
+export async function verify2FA(payload: { pendingSessionId: string; code: string }) {
+  const { data } = await api.post('/auth/otp/verify-2fa', payload);
+  return data as {
+    accessToken: string;
+    refreshToken: string;
+    user: { id: string; role: 'CUSTOMER' | 'FARMER' | 'ADMIN'; name?: string | null };
+  };
+}
+
+// Backward-compatible helpers expected by some screens
+export async function login(_payload: { email?: string; phone?: string; password: string }) {
+  const phone = _payload.phone || '';
+  return loginPassword({ phone, password: _payload.password });
+}
+
+export async function signupCustomer(payload: { name: string; phone: string; password: string }) {
+  return registerPassword({ name: payload.name, phone: payload.phone, password: payload.password, role: 'CUSTOMER' });
+}
+
+export async function signupFarmer(payload: { name: string; phone: string; password: string; farmName?: string }) {
+  // farmName is currently unused by backend; kept for UI compatibility
+  return registerPassword({ name: payload.name, phone: payload.phone, password: payload.password, role: 'FARMER' });
 }
 
 export async function me() {

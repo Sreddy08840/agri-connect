@@ -1,3 +1,6 @@
+// MUST BE FIRST: Setup require.context polyfill before expo-router processes routes
+import '../setup-require-context';
+
 import React, { useEffect, useMemo, useState } from 'react';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
