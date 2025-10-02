@@ -29,7 +29,23 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!ready) return;
-    const inAuthGroup = segments[0] === 'login' || segments[0] === 'signup';
+    const inAuthGroup = segments[0] === 'login' || segments[0] === 'signup' || segments[0] === 'auth';
+    
+    // Re-check auth state when navigating to non-auth routes
+    if (!inAuthGroup && !isAuthed) {
+      (async () => {
+        const token = await getToken();
+        const r = await getUserRole();
+        if (token && r) {
+          setIsAuthed(true);
+          setRole(r as 'farmer' | 'customer');
+          return;
+        }
+        router.replace('/login');
+      })();
+      return;
+    }
+    
     if (!isAuthed) {
       if (!inAuthGroup) router.replace('/login');
       return;

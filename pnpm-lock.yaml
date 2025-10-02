@@ -125,6 +125,9 @@ importers:
 
   apps/mobile:
     dependencies:
+      '@react-native-picker/picker':
+        specifier: ^2.11.2
+        version: 2.11.2(react-native@0.74.5)(react@18.2.0)
       '@tanstack/react-query':
         specifier: ^5.56.2
         version: 5.90.2(react@18.2.0)
@@ -3650,6 +3653,16 @@ packages:
       - encoding
       - supports-color
       - utf-8-validate
+
+  /@react-native-picker/picker@2.11.2(react-native@0.74.5)(react@18.2.0):
+    resolution: {integrity: sha512-2zyFdW4jgHjF+NeuDZ4nl3hJ+8suey69bI3yljqhNyowfklW2NwNrdDUaJ2iwtPCpk2pt7834aPF8TI6iyZRhA==}
+    peerDependencies:
+      react: '*'
+      react-native: '*'
+    dependencies:
+      react: 18.2.0
+      react-native: 0.74.5(@babel/core@7.28.4)(@babel/preset-env@7.28.3)(@types/react@18.2.79)(react@18.2.0)
+    dev: false
 
   /@react-native/assets-registry@0.74.87:
     resolution: {integrity: sha512-1XmRhqQchN+pXPKEKYdpJlwESxVomJOxtEnIkbo7GAlaN2sym84fHEGDXAjLilih5GVPpcpSmFzTy8jx3LtaFg==}
