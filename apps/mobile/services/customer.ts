@@ -17,6 +17,11 @@ export async function getOrders() {
   return (data?.orders || []) as any[];
 }
 
+export async function getOrder(id: string) {
+  const { data } = await api.get(`/orders/${id}`);
+  return data;
+}
+
 export async function checkout(cart: { productId: string; qty: number }[]) {
   // backend expects POST /orders with { items, paymentMethod, address }
   const payload = {

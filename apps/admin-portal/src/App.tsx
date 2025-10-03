@@ -5,6 +5,7 @@ import { api } from './lib/api';
 
 // Enhanced Pages
 import EnhancedLoginPage from './pages/EnhancedLoginPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import DashboardPage from './pages/DashboardPage';
 import EnhancedUsersPage from './pages/EnhancedUsersPage';
 import ProductsReviewPage from './pages/ProductsReviewPage';
@@ -87,14 +88,22 @@ function App() {
 
   return (
     <Routes>
-      {/* Login Route */}
-      <Route 
-        path="/login" 
+      {/* Login Routes */}
+      <Route
+        path="/login"
         element={
           <RedirectIfAuthenticated>
             <EnhancedLoginPage />
           </RedirectIfAuthenticated>
-        } 
+        }
+      />
+      <Route
+        path="/forgot-password"
+        element={
+          <RedirectIfAuthenticated>
+            <ForgotPasswordPage />
+          </RedirectIfAuthenticated>
+        }
       />
       
       {/* Admin Dashboard Routes */}

@@ -39,6 +39,16 @@ export async function signupFarmer(payload: { name: string; phone: string; passw
   return registerPassword({ name: payload.name, phone: payload.phone, password: payload.password, role: 'FARMER' });
 }
 
+export async function forgotPassword(payload: { phone: string }) {
+  const { data } = await api.post('/auth/password/forgot', payload);
+  return data as { success?: boolean; pendingSessionId: string; code?: string };
+}
+
+export async function resetPassword(payload: { pendingSessionId: string; code: string; newPassword: string }) {
+  const { data } = await api.post('/auth/password/reset', payload);
+  return data as { success?: boolean; message?: string };
+}
+
 export async function me() {
   const { data } = await api.get('/auth/me');
   return data;

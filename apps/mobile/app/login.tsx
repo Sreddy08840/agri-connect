@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { loginPassword } from '../services/auth';
+import { loginPassword, forgotPassword, resetPassword } from '../services/auth';
 import Loader from '../components/Loader';
 // Picker will be added later - using TouchableOpacity for now
 
@@ -39,6 +39,13 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Forgot password state
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [pendingSessionId, setPendingSessionId] = useState<string | null>(null);
+
   const onLogin = async () => {
     setLoading(true);
     setError(null);
@@ -60,9 +67,80 @@ export default function LoginScreen() {
   };
 
   const goSignup = () => router.push('/signup');
+
   const goForgotPassword = () => {
-    // TODO: Implement forgot password flow
-    setError('Forgot password feature coming soon!');
+    setShowForgotPassword(true);
+    setError(null);
+    setOtp('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setPendingSessionId(null);
+  };
+
+  const cancelForgotPassword = () => {
+    setShowForgotPassword(false);
+    setError(null);
+    setOtp('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setPendingSessionId(null);
+  };
+
+  const requestPasswordReset = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const e164Phone = toE164(phone, country);
+      if (!e164Phone) {
+        setError('Please enter a valid phone number');
+        setLoading(false);
+        return;
+      }
+      const res = await forgotPassword({ phone: e164Phone });
+      setPendingSessionId(res.pendingSessionId);
+      setError('OTP sent to your phone. Please enter it below.');
+    } catch (e: any) {
+      setError(e?.message || 'Failed to send OTP');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetPasswordSubmit = async () => {
+    if (!pendingSessionId) {
+      setError('Please request OTP first');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      await resetPassword({
+        pendingSessionId,
+        code: otp,
+        newPassword,
+      });
+      setError('Password reset successful! You can now login with your new password.');
+      setTimeout(() => {
+        setShowForgotPassword(false);
+        setOtp('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setPendingSessionId(null);
+      }, 2000);
+    } catch (e: any) {
+      setError(e?.message || 'Failed to reset password');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const selectedCountry = COUNTRY_CODES.find(c => c.code === country) || COUNTRY_CODES[0];
@@ -78,60 +156,142 @@ export default function LoginScreen() {
       >
         <View style={styles.container}>
           <Text style={styles.title}>AgriConnect</Text>
-          <Text style={styles.subtitle}>Login to Your Account</Text>
-          
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Phone Number</Text>
-            <View style={styles.phoneContainer}>
-              <TouchableOpacity 
-                style={styles.countryButton}
-                onPress={() => {
-                  const idx = COUNTRY_CODES.findIndex(c => c.code === country);
-                  const nextIdx = (idx + 1) % COUNTRY_CODES.length;
-                  setCountry(COUNTRY_CODES[nextIdx].code);
-                }}
-              >
-                <Text style={styles.countryButtonText}>{selectedCountry.dial}</Text>
+          <Text style={styles.subtitle}>
+            {showForgotPassword ? 'Reset Password' : 'Login to Your Account'}
+          </Text>
+
+          {showForgotPassword ? (
+            <>
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Phone Number</Text>
+                <View style={styles.phoneContainer}>
+                  <TouchableOpacity
+                    style={styles.countryButton}
+                    onPress={() => {
+                      const idx = COUNTRY_CODES.findIndex(c => c.code === country);
+                      const nextIdx = (idx + 1) % COUNTRY_CODES.length;
+                      setCountry(COUNTRY_CODES[nextIdx].code);
+                    }}
+                  >
+                    <Text style={styles.countryButtonText}>{selectedCountry.dial}</Text>
+                  </TouchableOpacity>
+                  <TextInput
+                    placeholder={selectedCountry.example}
+                    autoCapitalize="none"
+                    keyboardType="phone-pad"
+                    value={phone}
+                    onChangeText={setPhone}
+                    style={styles.phoneInput}
+                  />
+                </View>
+              </View>
+
+              {pendingSessionId ? (
+                <>
+                  <View style={styles.formGroup}>
+                    <Text style={styles.label}>OTP</Text>
+                    <TextInput
+                      placeholder="Enter 6-digit OTP"
+                      keyboardType="number-pad"
+                      maxLength={6}
+                      value={otp}
+                      onChangeText={setOtp}
+                      style={styles.input}
+                    />
+                  </View>
+
+                  <View style={styles.formGroup}>
+                    <Text style={styles.label}>New Password</Text>
+                    <TextInput
+                      placeholder="Enter new password (min 6 chars)"
+                      secureTextEntry
+                      value={newPassword}
+                      onChangeText={setNewPassword}
+                      style={styles.input}
+                    />
+                  </View>
+
+                  <View style={styles.formGroup}>
+                    <Text style={styles.label}>Confirm Password</Text>
+                    <TextInput
+                      placeholder="Confirm new password"
+                      secureTextEntry
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      style={styles.input}
+                    />
+                  </View>
+
+                  <TouchableOpacity style={styles.button} onPress={resetPasswordSubmit} disabled={loading}>
+                    <Text style={styles.buttonText}>{loading ? 'Resetting...' : 'Reset Password'}</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <TouchableOpacity style={styles.button} onPress={requestPasswordReset} disabled={loading}>
+                  <Text style={styles.buttonText}>{loading ? 'Sending OTP...' : 'Send OTP'}</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity onPress={cancelForgotPassword} style={styles.cancelButton}>
+                <Text style={styles.cancelText}>Back to Login</Text>
               </TouchableOpacity>
-              <TextInput
-                placeholder={selectedCountry.example}
-                autoCapitalize="none"
-                keyboardType="phone-pad"
-                value={phone}
-                onChangeText={setPhone}
-                style={styles.phoneInput}
-              />
-            </View>
-          </View>
+            </>
+          ) : (
+            <>
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Phone Number</Text>
+                <View style={styles.phoneContainer}>
+                  <TouchableOpacity
+                    style={styles.countryButton}
+                    onPress={() => {
+                      const idx = COUNTRY_CODES.findIndex(c => c.code === country);
+                      const nextIdx = (idx + 1) % COUNTRY_CODES.length;
+                      setCountry(COUNTRY_CODES[nextIdx].code);
+                    }}
+                  >
+                    <Text style={styles.countryButtonText}>{selectedCountry.dial}</Text>
+                  </TouchableOpacity>
+                  <TextInput
+                    placeholder={selectedCountry.example}
+                    autoCapitalize="none"
+                    keyboardType="phone-pad"
+                    value={phone}
+                    onChangeText={setPhone}
+                    style={styles.phoneInput}
+                  />
+                </View>
+              </View>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Password</Text>
-            <TextInput
-              placeholder="Enter your password"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-              style={styles.input}
-            />
-          </View>
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Password</Text>
+                <TextInput
+                  placeholder="Enter your password"
+                  secureTextEntry
+                  value={password}
+                  onChangeText={setPassword}
+                  style={styles.input}
+                />
+              </View>
 
-          <TouchableOpacity onPress={goForgotPassword} style={styles.forgotButton}>
-            <Text style={styles.forgotText}>Forgot Password?</Text>
-          </TouchableOpacity>
+              <TouchableOpacity onPress={goForgotPassword} style={styles.forgotButton}>
+                <Text style={styles.forgotText}>Forgot Password?</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.button} onPress={onLogin} disabled={loading}>
+                <Text style={styles.buttonText}>{loading ? 'Sending OTP...' : 'Login'}</Text>
+              </TouchableOpacity>
+
+              <View style={styles.signupContainer}>
+                <Text style={styles.signupText}>Don't have an account? </Text>
+                <TouchableOpacity onPress={goSignup}>
+                  <Text style={styles.link}>Sign up here</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
-          
-          <TouchableOpacity style={styles.button} onPress={onLogin} disabled={loading}>
-            <Text style={styles.buttonText}>{loading ? 'Sending OTP...' : 'Login'}</Text>
-          </TouchableOpacity>
-          
-          <View style={styles.signupContainer}>
-            <Text style={styles.signupText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={goSignup}>
-              <Text style={styles.link}>Sign up here</Text>
-            </TouchableOpacity>
-          </View>
-          
+
           <Loader visible={loading} />
         </View>
       </ScrollView>
@@ -199,4 +359,6 @@ const styles = StyleSheet.create({
   signupText: { color: '#6b7280', fontSize: 14 },
   link: { color: '#2e7d32', fontSize: 14, fontWeight: '600' },
   error: { color: '#b91c1c', marginBottom: 12, textAlign: 'center', fontSize: 14, backgroundColor: '#fee2e2', padding: 12, borderRadius: 8 },
+  cancelButton: { alignSelf: 'center', marginTop: 16 },
+  cancelText: { color: '#6b7280', fontSize: 14, fontWeight: '600' },
 });

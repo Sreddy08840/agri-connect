@@ -99,15 +99,45 @@ export default function FarmerProductsPage() {
     setProductImages(images);
   };
 
-  const [editing, setEditing] = useState<Record<string, { price: number; stockQty: number }>>({});
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [editingImages, setEditingImages] = useState<Record<string, string[]>>({});
 
-  const startEdit = (p: any) => setEditing(prev => ({ ...prev, [p.id]: { price: p.price, stockQty: p.stockQty } }));
-  const changeEdit = (id: string, field: 'price'|'stockQty', value: number) => setEditing(prev => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
-  const saveEdit = (id: string) => {
-    const patch = editing[id];
-    if (!patch) return;
-    updateMutation.mutate({ id, patch });
-    setEditing(prev => { const copy = { ...prev }; delete copy[id]; return copy; });
+  const startEdit = (p: any) => {
+    setEditingProduct(p);
+    setEditingImages({ [p.id]: p.images || [] });
+    setShowEditModal(true);
+  };
+
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setEditingProduct(null);
+    setEditingImages({});
+  };
+
+  const saveEditModal = () => {
+    if (!editingProduct) return;
+    const images = editingImages[editingProduct.id] || [];
+    const patch = {
+      price: editingProduct.price,
+      stockQty: editingProduct.stockQty,
+      images: images.length > 0 ? images : null,
+    };
+    updateMutation.mutate({ id: editingProduct.id, patch }, {
+      onSuccess: () => {
+        closeEditModal();
+      }
+    });
+  };
+
+  const updateEditingProduct = (field: string, value: any) => {
+    if (!editingProduct) return;
+    setEditingProduct(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleEditImagesChange = (images: string[]) => {
+    if (!editingProduct) return;
+    setEditingImages(prev => ({ ...prev, [editingProduct.id]: images }));
   };
 
   return (
@@ -217,31 +247,13 @@ export default function FarmerProductsPage() {
                           <span>{p.name}</span>
                         </div>
                       </td>
-                      <td className="py-2 pr-4">
-                        {editing[p.id] ? (
-                          <input type="number" step="0.01" value={editing[p.id].price} onChange={(e) => changeEdit(p.id, 'price', Number(e.target.value))} className="w-24 border rounded px-2 py-1" />
-                        ) : (
-                          <>₹{p.price}</>
-                        )}
-                      </td>
-                      <td className="py-2 pr-4">
-                        {editing[p.id] ? (
-                          <input type="number" value={editing[p.id].stockQty} onChange={(e) => changeEdit(p.id, 'stockQty', Number(e.target.value))} className="w-24 border rounded px-2 py-1" />
-                        ) : (
-                          <>{p.stockQty}</>
-                        )}
-                      </td>
+                      <td className="py-2 pr-4">₹{p.price}</td>
+                      <td className="py-2 pr-4">{p.stockQty}</td>
                       <td className="py-2 pr-4 capitalize">{p.status?.toLowerCase?.() || 'draft'}</td>
                       <td className="py-2 pr-4">
-                        {editing[p.id] ? (
-                          <Button onClick={() => saveEdit(p.id)}>
-                            <Save className="h-4 w-4 mr-2" /> Save
-                          </Button>
-                        ) : (
-                          <Button variant="outline" onClick={() => startEdit(p)}>
-                            <Edit2 className="h-4 w-4 mr-2" /> Edit
-                          </Button>
-                        )}
+                        <Button variant="outline" onClick={() => startEdit(p)}>
+                          <Edit2 className="h-4 w-4 mr-2" /> Edit
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -259,6 +271,67 @@ export default function FarmerProductsPage() {
           )}
         </div>
       </div>
+
+      {/* Edit Product Modal */}
+      {showEditModal && editingProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold">Edit Product</h2>
+                <button
+                  onClick={closeEditModal}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Product Images</label>
+                  <ProductImageUpload
+                    onImagesChange={handleEditImagesChange}
+                    maxImages={5}
+                  />
+                  <p className="text-sm text-gray-500 mt-1">Upload up to 5 high-quality images of your product</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Price</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editingProduct.price}
+                      onChange={(e) => updateEditingProduct('price', Number(e.target.value))}
+                      className="w-full border rounded-md px-3 py-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Stock Quantity</label>
+                    <input
+                      type="number"
+                      value={editingProduct.stockQty}
+                      onChange={(e) => updateEditingProduct('stockQty', Number(e.target.value))}
+                      className="w-full border rounded-md px-3 py-2"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-4">
+                  <Button variant="outline" onClick={closeEditModal}>
+                    Cancel
+                  </Button>
+                  <Button onClick={saveEditModal} disabled={updateMutation.isLoading}>
+                    {updateMutation.isLoading ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

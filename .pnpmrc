@@ -1,4 +1,3 @@
-# pnpm configuration for React Native/Expo compatibility
 shamefully-hoist=true
 public-hoist-pattern[]=@expo/metro
 public-hoist-pattern[]=@expo/metro-config

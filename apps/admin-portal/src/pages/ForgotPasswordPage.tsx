@@ -4,31 +4,31 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation } from 'react-query';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../stores/authStore';
 import { api } from '../lib/api';
 import toast from 'react-hot-toast';
-import { Shield, Eye, EyeOff, Lock, Phone, ArrowLeft, RefreshCw, HelpCircle } from 'lucide-react';
+import { Shield, Phone, ArrowLeft, RefreshCw, Key, CheckCircle } from 'lucide-react';
 
-const adminLoginSchema = z.object({
+const forgotPasswordSchema = z.object({
   phone: z.string().min(5, 'Enter a valid phone number'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
-const otpSchema = z.object({
+const resetPasswordSchema = z.object({
   code: z.string().length(6, 'OTP must be 6 digits'),
+  newPassword: z.string().min(6, 'Password must be at least 6 characters'),
+  confirmPassword: z.string().min(6, 'Please confirm your password'),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
-type AdminLoginFormData = z.infer<typeof adminLoginSchema>;
-type OTPFormData = z.infer<typeof otpSchema>;
+type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
+type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
-export default function EnhancedLoginPage() {
-  const [step, setStep] = useState<'credentials' | 'otp'>('credentials');
-  const [showPassword, setShowPassword] = useState(false);
+export default function ForgotPasswordPage() {
+  const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [pendingSessionId, setPendingSessionId] = useState('');
   const [devOTPCode, setDevOTPCode] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
-  const [lastCredentials, setLastCredentials] = useState<{ phone: string; password: string } | null>(null);
-  const { setUser } = useAuthStore();
   const navigate = useNavigate();
 
   // Countdown timer for resend OTP
@@ -42,16 +42,15 @@ export default function EnhancedLoginPage() {
     return () => clearInterval(interval);
   }, [resendCooldown]);
 
-  const credentialsForm = useForm<AdminLoginFormData>({
-    resolver: zodResolver(adminLoginSchema),
+  const phoneForm = useForm<ForgotPasswordFormData>({
+    resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
       phone: '',
-      password: ''
     }
   });
 
-  const otpForm = useForm<OTPFormData>({
-    resolver: zodResolver(otpSchema),
+  const resetForm = useForm<ResetPasswordFormData>({
+    resolver: zodResolver(resetPasswordSchema),
   });
 
   // Convert phone to E.164 format
@@ -69,13 +68,12 @@ export default function EnhancedLoginPage() {
     return `+91${cleaned}`;
   };
 
-  const startLoginMutation = useMutation(
-    (payload: { phone: string; password: string }) => api.post('/auth/login-password', payload),
+  const forgotPasswordMutation = useMutation(
+    (phone: string) => api.post('/auth/password/forgot', { phone }),
     {
-      onSuccess: (response, variables) => {
-        const { pendingSessionId, code } = response.data as { pendingSessionId: string; code?: string };
+      onSuccess: (response, phone) => {
+        const { pendingSessionId, code } = response.data;
         setPendingSessionId(pendingSessionId);
-        setLastCredentials(variables);
         setStep('otp');
         setResendCooldown(30); // 30 second cooldown
         if (process.env.NODE_ENV === 'development' && code) {
@@ -86,19 +84,19 @@ export default function EnhancedLoginPage() {
         }
       },
       onError: (error: any) => {
-        toast.error(error.response?.data?.error || 'Admin login failed. Please check your credentials.');
+        toast.error(error.response?.data?.error || 'Failed to send OTP. Please check your phone number.');
       },
     }
   );
 
   const resendOTPMutation = useMutation(
     () => {
-      if (!lastCredentials) throw new Error('No credentials available');
-      return api.post('/auth/login-password', lastCredentials);
+      const phone = toE164(phoneForm.getValues('phone'));
+      return api.post('/auth/password/forgot', { phone });
     },
     {
       onSuccess: (response) => {
-        const { code } = response.data as { code?: string };
+        const { code } = response.data;
         setResendCooldown(30);
         if (process.env.NODE_ENV === 'development' && code) {
           setDevOTPCode(code);
@@ -113,53 +111,44 @@ export default function EnhancedLoginPage() {
     }
   );
 
-  const handleResendOTP = () => {
-    if (resendCooldown === 0 && lastCredentials) {
-      resendOTPMutation.mutate();
-    }
-  };
-
-  const verifyOTPMutation = useMutation(
-    (data: OTPFormData) => api.post('/auth/otp/verify-2fa', { pendingSessionId, code: data.code }),
+  const resetPasswordMutation = useMutation(
+    (data: ResetPasswordFormData) => api.post('/auth/password/reset', {
+      pendingSessionId,
+      code: data.code,
+      newPassword: data.newPassword,
+    }),
     {
-      onSuccess: (response) => {
-        const { accessToken, refreshToken, user } = response.data;
-        
-        // Verify admin role
-        if (user?.role !== 'ADMIN') {
-          toast.error('Access denied. Admin privileges required.');
-          return;
-        }
-        
-        localStorage.setItem('adminAccessToken', accessToken);
-        localStorage.setItem('adminRefreshToken', refreshToken);
-        api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-        setUser(user);
-        toast.success('Admin login successful!');
-        navigate('/dashboard', { replace: true });
+      onSuccess: () => {
+        toast.success('Password reset successfully! You can now login with your new password.');
+        navigate('/login');
       },
       onError: (error: any) => {
-        toast.error('Failed to verify OTP. Please try again.');
+        toast.error(error.response?.data?.error || 'Failed to reset password. Please try again.');
       },
     }
   );
 
-  const onCredentialsSubmit = (data: AdminLoginFormData) => {
-    const e164Phone = toE164(data.phone);
-    const payload = { phone: e164Phone, password: data.password };
-    startLoginMutation.mutate(payload);
+  const handleResendOTP = () => {
+    if (resendCooldown === 0) {
+      resendOTPMutation.mutate();
+    }
   };
 
-  const onOTPSubmit = (data: OTPFormData) => {
-    verifyOTPMutation.mutate(data);
+  const onPhoneSubmit = (data: ForgotPasswordFormData) => {
+    const e164Phone = toE164(data.phone);
+    forgotPasswordMutation.mutate(e164Phone);
+  };
+
+  const onResetSubmit = (data: ResetPasswordFormData) => {
+    resetPasswordMutation.mutate(data);
   };
 
   const goBack = () => {
-    setStep('credentials');
+    setStep('phone');
     setPendingSessionId('');
     setDevOTPCode('');
-    credentialsForm.reset();
-    otpForm.reset();
+    phoneForm.reset();
+    resetForm.reset();
   };
 
   return (
@@ -168,18 +157,28 @@ export default function EnhancedLoginPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-red-600 rounded-full mb-6 shadow-lg">
-            <Shield className="w-10 h-10 text-white" />
+            <Key className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">Admin Portal</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">Reset Password</h1>
           <p className="text-red-100 text-lg">
-            {step === 'credentials' ? 'Secure Admin Access' : 'Enter the OTP sent to your phone'}
+            {step === 'phone' ? 'Enter your phone number to reset your password' : 'Enter the OTP and your new password'}
           </p>
         </div>
 
-        {/* Login Form */}
+        {/* Form */}
         <div className="bg-red-800/30 backdrop-blur-sm border border-red-600/30 rounded-xl shadow-2xl p-8">
-          {step === 'credentials' ? (
-            <form onSubmit={credentialsForm.handleSubmit(onCredentialsSubmit)} className="space-y-6">
+          {step === 'phone' ? (
+            <form onSubmit={phoneForm.handleSubmit(onPhoneSubmit)} className="space-y-6">
+              {/* Back Button */}
+              <button
+                type="button"
+                onClick={() => navigate('/login')}
+                className="flex items-center text-sm text-red-200 hover:text-white transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                Back to login
+              </button>
+
               {/* Phone Number */}
               <div>
                 <label className="block text-sm font-medium text-red-100 mb-3">
@@ -189,72 +188,34 @@ export default function EnhancedLoginPage() {
                   <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-red-300 w-5 h-5" />
                   <input
                     type="tel"
-                    {...credentialsForm.register('phone')}
+                    {...phoneForm.register('phone')}
                     className="w-full pl-12 pr-4 py-4 bg-red-900/50 border border-red-600/50 rounded-lg text-white placeholder-red-300 focus:ring-2 focus:ring-red-400 focus:border-red-400 transition-all duration-200"
                     placeholder="Enter phone number"
                   />
                 </div>
-                {credentialsForm.formState.errors.phone && (
-                  <p className="text-red-300 text-sm mt-2">{credentialsForm.formState.errors.phone.message}</p>
-                )}
-              </div>
-
-              {/* Password */}
-              <div>
-                <label className="block text-sm font-medium text-red-100 mb-3">
-                  Admin Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-red-300 w-5 h-5" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    {...credentialsForm.register('password')}
-                    className="w-full pl-12 pr-14 py-4 bg-red-900/50 border border-red-600/50 rounded-lg text-white placeholder-red-300 focus:ring-2 focus:ring-red-400 focus:border-red-400 transition-all duration-200"
-                    placeholder="Enter admin password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-red-300 hover:text-red-100 transition-colors"
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
-                {credentialsForm.formState.errors.password && (
-                  <p className="text-red-300 text-sm mt-2">{credentialsForm.formState.errors.password.message}</p>
+                {phoneForm.formState.errors.phone && (
+                  <p className="text-red-300 text-sm mt-2">{phoneForm.formState.errors.phone.message}</p>
                 )}
               </div>
 
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={startLoginMutation.isLoading}
+                disabled={forgotPasswordMutation.isLoading}
                 className="w-full bg-red-600 hover:bg-red-700 text-white py-4 px-6 rounded-lg font-semibold text-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
               >
-                {startLoginMutation.isLoading ? (
+                {forgotPasswordMutation.isLoading ? (
                   <div className="flex items-center justify-center">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
-                    Verifying...
+                    Sending OTP...
                   </div>
                 ) : (
-                  'Access Admin Portal'
+                  'Send Reset OTP'
                 )}
               </button>
-
-              {/* Forgot Password Link */}
-              <div className="text-center mt-4">
-                <button
-                  type="button"
-                  onClick={() => navigate('/forgot-password')}
-                  className="text-red-200 hover:text-white text-sm underline transition-colors"
-                >
-                  <HelpCircle className="w-4 h-4 inline mr-1" />
-                  Forgot Password?
-                </button>
-              </div>
             </form>
           ) : (
-            <form onSubmit={otpForm.handleSubmit(onOTPSubmit)} className="space-y-6">
+            <form onSubmit={resetForm.handleSubmit(onResetSubmit)} className="space-y-6">
               {/* Back Button */}
               <button
                 type="button"
@@ -262,7 +223,7 @@ export default function EnhancedLoginPage() {
                 className="flex items-center text-sm text-red-200 hover:text-white transition-colors"
               >
                 <ArrowLeft className="w-4 h-4 mr-1" />
-                Back to login
+                Back to phone
               </button>
 
               {/* OTP Input */}
@@ -272,14 +233,46 @@ export default function EnhancedLoginPage() {
                 </label>
                 <input
                   type="text"
-                  {...otpForm.register('code')}
+                  {...resetForm.register('code')}
                   className="w-full px-4 py-4 text-center text-2xl font-mono bg-red-900/50 border border-red-600/50 rounded-lg text-white placeholder-red-300 focus:ring-2 focus:ring-red-400 focus:border-red-400 transition-all duration-200"
                   placeholder="000000"
                   maxLength={6}
                   autoComplete="one-time-code"
                 />
-                {otpForm.formState.errors.code && (
-                  <p className="text-red-300 text-sm mt-2">{otpForm.formState.errors.code.message}</p>
+                {resetForm.formState.errors.code && (
+                  <p className="text-red-300 text-sm mt-2">{resetForm.formState.errors.code.message}</p>
+                )}
+              </div>
+
+              {/* New Password */}
+              <div>
+                <label className="block text-sm font-medium text-red-100 mb-3">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  {...resetForm.register('newPassword')}
+                  className="w-full px-4 py-4 bg-red-900/50 border border-red-600/50 rounded-lg text-white placeholder-red-300 focus:ring-2 focus:ring-red-400 focus:border-red-400 transition-all duration-200"
+                  placeholder="Enter new password"
+                />
+                {resetForm.formState.errors.newPassword && (
+                  <p className="text-red-300 text-sm mt-2">{resetForm.formState.errors.newPassword.message}</p>
+                )}
+              </div>
+
+              {/* Confirm Password */}
+              <div>
+                <label className="block text-sm font-medium text-red-100 mb-3">
+                  Confirm New Password
+                </label>
+                <input
+                  type="password"
+                  {...resetForm.register('confirmPassword')}
+                  className="w-full px-4 py-4 bg-red-900/50 border border-red-600/50 rounded-lg text-white placeholder-red-300 focus:ring-2 focus:ring-red-400 focus:border-red-400 transition-all duration-200"
+                  placeholder="Confirm new password"
+                />
+                {resetForm.formState.errors.confirmPassword && (
+                  <p className="text-red-300 text-sm mt-2">{resetForm.formState.errors.confirmPassword.message}</p>
                 )}
               </div>
 
@@ -302,16 +295,16 @@ export default function EnhancedLoginPage() {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={verifyOTPMutation.isLoading}
+                disabled={resetPasswordMutation.isLoading}
                 className="w-full bg-red-600 hover:bg-red-700 text-white py-4 px-6 rounded-lg font-semibold text-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
               >
-                {verifyOTPMutation.isLoading ? (
+                {resetPasswordMutation.isLoading ? (
                   <div className="flex items-center justify-center">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
-                    Verifying...
+                    Resetting Password...
                   </div>
                 ) : (
-                  'Verify & Login'
+                  'Reset Password'
                 )}
               </button>
             </form>
@@ -322,7 +315,7 @@ export default function EnhancedLoginPage() {
         <div className="text-center mt-8">
           <div className="text-red-200 text-sm mb-4">
             <p className="font-medium">Agri-Connect Admin Portal v1.0</p>
-            <p className="text-red-300 text-xs">Authorized Personnel Only</p>
+            <p className="text-red-300 text-xs">Secure Password Reset</p>
           </div>
         </div>
       </div>

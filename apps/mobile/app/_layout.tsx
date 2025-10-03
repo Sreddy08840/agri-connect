@@ -8,7 +8,17 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ActivityIndicator, View } from 'react-native';
 import { getToken, getUserRole } from '../utils/storage';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+    mutations: {
+      retry: 0,
+    },
+  },
+});
 
 export default function RootLayout() {
   const [ready, setReady] = useState(false);

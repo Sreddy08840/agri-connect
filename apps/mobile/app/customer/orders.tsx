@@ -1,11 +1,28 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { getOrders } from '../../services/customer';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { getToken } from '../../utils/storage';
 
 export default function Orders() {
-  const { data = [], isLoading } = useQuery({ queryKey: ['orders'], queryFn: getOrders });
+  const router = useRouter();
+  const [hasToken, setHasToken] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = await getToken();
+      setHasToken(!!token);
+    };
+    checkAuth();
+  }, []);
+
+  const { data = [], isLoading } = useQuery({
+    queryKey: ['orders'],
+    queryFn: getOrders,
+    enabled: hasToken === true
+  });
 
   const renderOrderItem = ({ item }: any) => (
     <TouchableOpacity style={styles.orderCard}>
@@ -38,7 +55,7 @@ export default function Orders() {
       </View>
 
       <View style={styles.orderFooter}>
-        <TouchableOpacity style={styles.viewButton}>
+        <TouchableOpacity style={styles.viewButton} onPress={() => router.push(`/customer/order/${item.id}`)}>
           <Text style={styles.viewButtonText}>View Details</Text>
           <MaterialIcons name="chevron-right" size={18} color="#2e7d32" />
         </TouchableOpacity>

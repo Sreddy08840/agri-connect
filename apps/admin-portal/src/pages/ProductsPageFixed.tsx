@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { api } from '../lib/api';
-import { 
-  Package, 
-  Search, 
-  X, 
+import { getProductMainImage } from '../lib/imageUtils';
+import {
+  Package,
+  Search,
+  X,
   CheckCircle,
   Clock,
   AlertCircle
@@ -267,9 +268,15 @@ export default function ProductsPageFixed() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-12 w-12">
-                        <div className="h-12 w-12 rounded-lg bg-gray-200 flex items-center justify-center">
-                          <Package className="h-6 w-6 text-gray-500" />
-                        </div>
+                        <img
+                          src={getProductMainImage(product)}
+                          alt={product.name}
+                          className="h-12 w-12 rounded-lg object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = '/placeholder-product.svg';
+                          }}
+                        />
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">{product.name}</div>

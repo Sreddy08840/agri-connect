@@ -38,11 +38,14 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 8080;
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: false, // Allow cross-origin access to static files
+}));
 app.use(cors({
   origin: [
     'http://localhost:5173',
-    'http://localhost:5174', 
+    'http://localhost:5174',
+    'http://localhost:5175', // Web app
     'http://localhost:3000',  // Admin portal
     'http://192.168.30.223:5173', // Web app from network
     /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:\d+$/,  // Allow any local network IP

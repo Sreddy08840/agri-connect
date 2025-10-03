@@ -9,7 +9,7 @@ type Props = {
   style?: ViewStyle;
 };
 
-export default function Button({ title, onPress, variant = 'primary', disabled, style }: Props) {
+function Button({ title, onPress, variant = 'primary', disabled, style }: Props) {
   const bg = variant === 'primary' ? '#2e7d32' : variant === 'secondary' ? '#1b5e20' : '#b91c1c';
   return (
     <TouchableOpacity
@@ -21,6 +21,8 @@ export default function Button({ title, onPress, variant = 'primary', disabled, 
     </TouchableOpacity>
   );
 }
+
+export default Button;
 
 const styles = StyleSheet.create({
   base: { padding: 14, borderRadius: 8, alignItems: 'center' },

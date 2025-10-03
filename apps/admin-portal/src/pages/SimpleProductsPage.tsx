@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { getProductMainImage } from '../lib/imageUtils';
 
 export default function SimpleProductsPage() {
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -212,11 +213,15 @@ export default function SimpleProductsPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-12 w-12">
-                          <div className="h-12 w-12 rounded-lg bg-gray-200 flex items-center justify-center">
-                            <svg className="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                            </svg>
-                          </div>
+                          <img
+                            src={getProductMainImage(product)}
+                            alt={product.name}
+                            className="h-12 w-12 rounded-lg object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = '/placeholder-product.svg';
+                            }}
+                          />
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">{product.name || 'Unknown Product'}</div>

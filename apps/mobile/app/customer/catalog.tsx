@@ -1,13 +1,28 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, FlatList } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { getCatalog } from '../../services/customer';
 import ProductCard from '../../components/ProductCard';
 import { useRouter } from 'expo-router';
+import { getToken } from '../../utils/storage';
 
 export default function Catalog() {
   const router = useRouter();
-  const { data = [], isLoading } = useQuery({ queryKey: ['catalog'], queryFn: getCatalog });
+  const [hasToken, setHasToken] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = await getToken();
+      setHasToken(!!token);
+    };
+    checkAuth();
+  }, []);
+
+  const { data = [], isLoading } = useQuery({
+    queryKey: ['catalog'],
+    queryFn: getCatalog,
+    enabled: hasToken === true
+  });
   
   return (
     <View style={{ flex: 1, padding: 12 }}>

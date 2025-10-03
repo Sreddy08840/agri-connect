@@ -15,12 +15,24 @@ export const api = axios.create({
 api.interceptors.request.use(async (config) => {
   try {
     const token = await getToken();
+    console.log('🔑 Token retrieved:', token ? 'Present' : 'Missing');
     if (token) {
+      // Ensure headers object exists and is properly formatted
       config.headers = config.headers || {};
+      // Use proper header assignment to avoid format issues
       config.headers.Authorization = `Bearer ${token}`;
+      config.headers['Content-Type'] = 'application/json';
+      console.log('🔑 Authorization header set for:', config.url);
+    } else {
+      console.log('⚠️ No token found for request to:', config.url);
     }
-  } catch {}
+  } catch (error) {
+    console.error('❌ Error getting token:', error);
+  }
   return config;
+}, (error) => {
+  console.error('❌ Request interceptor error:', error);
+  return Promise.reject(error);
 });
 
 api.interceptors.response.use(

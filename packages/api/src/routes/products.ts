@@ -182,7 +182,34 @@ const productQuerySchema = z.object({
 
 // Helper to map DB product to API product (parse JSON images string to array)
 const mapProduct = (p: any) => {
-  const images = p.images ? (() => { try { return JSON.parse(p.images); } catch { return []; } })() : [];
+  let images: string[] = [];
+
+  if (p.images) {
+    // Try to parse as JSON array first
+    try {
+      const parsed = JSON.parse(p.images);
+      if (Array.isArray(parsed)) {
+        images = parsed;
+      } else {
+        // If it's not an array, treat it as a single string and convert to array
+        images = [String(parsed)];
+      }
+    } catch {
+      // If JSON parsing fails, it might be a comma-separated string or single URL
+      if (typeof p.images === 'string') {
+        // Check if it contains commas (multiple URLs)
+        if (p.images.includes(',')) {
+          images = p.images.split(',').map(url => url.trim());
+        } else {
+          // Single URL
+          images = [p.images];
+        }
+      } else {
+        images = [];
+      }
+    }
+  }
+
   return {
     ...p,
     images,

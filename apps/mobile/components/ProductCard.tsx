@@ -29,7 +29,7 @@ export default function ProductCard({ product, onPress, action }: Props) {
           <Text numberOfLines={1} style={styles.sub}>by {product.farmerName}</Text>
         ) : null}
         <View style={styles.row}>
-          <Text style={styles.price}>${product.price.toFixed(2)}</Text>
+          <Text style={styles.price}>₹{product.price.toFixed(2)}</Text>
           <View style={{ flex: 1 }} />
           {action}
         </View>
