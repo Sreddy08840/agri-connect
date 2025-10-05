@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -6,6 +6,7 @@ import { useMutation } from 'react-query';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { api } from '../lib/api';
+import { initializeGoogleSignIn, handleGoogleSignIn } from '../lib/googleAuth';
 import toast from 'react-hot-toast';
 import ForgotPassword from '../components/ForgotPassword';
 
@@ -172,6 +173,42 @@ export default function LoginPage() {
     toast.success('Password reset successful!');
   };
 
+  const handleGoogleSignInSuccess = async (response: any) => {
+    try {
+      const result = await handleGoogleSignIn(response.credential);
+      if (result.success) {
+        setUser(result.user);
+        toast.success('Google sign-in successful!');
+        // Role-based redirect
+        if (result.user?.role === 'FARMER') {
+          navigate('/farmer/dashboard', { replace: true });
+        } else if (result.user?.role === 'ADMIN') {
+          window.location.href = 'http://localhost:5174/dashboard';
+        } else {
+          navigate('/home', { replace: true });
+        }
+      } else {
+        toast.error(result.error || 'Google sign-in failed');
+      }
+    } catch (error) {
+      console.error('Google sign-in error:', error);
+      toast.error('Google sign-in failed');
+    }
+  };
+
+  useEffect(() => {
+    if (step === 'credentials') {
+      // Initialize Google Sign-In when on credentials step
+      const timer = setTimeout(() => {
+        initializeGoogleSignIn(handleGoogleSignInSuccess, (error) => {
+          console.log('Google Sign-In prompt error:', error);
+        });
+      }, 1000); // Small delay to ensure DOM is ready
+
+      return () => clearTimeout(timer);
+    }
+  }, [step]);
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -249,6 +286,20 @@ export default function LoginPage() {
                 <button type="button" className="text-sm text-green-700 hover:underline" onClick={() => setStep('forgot')}>
                   Forgot Password?
                 </button>
+              </div>
+
+              {/* Google Sign-In Button */}
+              <div className="w-full">
+                <div id="google-signin-button" className="w-full"></div>
+              </div>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">or</span>
+                </div>
               </div>
 
               <button type="submit" className="w-full px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed" disabled={startLoginMutation.isLoading}>

@@ -67,6 +67,22 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Mobile app configuration endpoint
+app.get('/config', (req, res) => {
+  // Get the server's host from the request
+  const host = req.get('host') || 'localhost:8080';
+  const protocol = req.protocol;
+  const baseUrl = `${protocol}://${host}`;
+
+  res.json({
+    apiUrl: `${baseUrl}/api`,
+    baseUrl: baseUrl,
+    websocketUrl: baseUrl,
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);

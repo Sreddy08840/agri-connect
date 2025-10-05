@@ -7,6 +7,7 @@ import { authenticateToken, AuthenticatedRequest } from '../middleware/auth';
 import { otpRateLimit } from '../middleware/rateLimit-simple';
 import bcrypt from 'bcryptjs';
 import { createPendingSession, getPendingSession, deletePendingSession } from '../services/pendingSessionStore';
+import { OAuth2Client } from 'google-auth-library';
 
 const router = Router();
 
@@ -89,6 +90,112 @@ router.post('/password/reset', async (req, res) => {
     }
     console.error('password/reset error:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Simple registration for mobile app (no OTP required)
+router.post('/register', async (req, res) => {
+  try {
+    const { name, phone, email, password, role, businessName } = req.body;
+    
+    // Validation
+    if (!name || !phone || !password) {
+      return res.status(400).json({ error: 'Name, phone, and password are required' });
+    }
+    
+    const existing = await prisma.user.findUnique({ where: { phone } });
+    if (existing) {
+      return res.status(400).json({ error: 'Phone already registered' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    
+    const userData: any = {
+      name,
+      phone,
+      email: email || undefined,
+      passwordHash,
+      role: role || 'CUSTOMER',
+      verified: true, // Auto-verify for mobile
+    };
+
+    if (role === 'FARMER' && businessName) {
+      userData.farmerProfile = {
+        create: { businessName }
+      };
+    }
+
+    const user = await prisma.user.create({
+      data: userData,
+      include: { farmerProfile: true }
+    });
+
+    const tokens = generateTokens({ userId: user.id, role: user.role });
+    
+    res.json({
+      user: {
+        id: user.id,
+        name: user.name,
+        phone: user.phone,
+        email: user.email,
+        role: user.role,
+        verified: user.verified,
+        avatarUrl: user.avatarUrl,
+        farmerProfile: user.farmerProfile
+      },
+      ...tokens
+    });
+  } catch (error) {
+    console.error('Register error:', error);
+    res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+// Simple login for mobile app (no OTP required)
+router.post('/login', async (req, res) => {
+  try {
+    const { phone, password, role } = req.body;
+    
+    if (!phone || !password) {
+      return res.status(400).json({ error: 'Phone and password are required' });
+    }
+    
+    const user = await prisma.user.findUnique({
+      where: { phone },
+      include: { farmerProfile: true }
+    });
+
+    if (!user || !user.passwordHash) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    if (role && user.role !== role) {
+      return res.status(403).json({ error: 'Invalid role for this login' });
+    }
+
+    const tokens = generateTokens({ userId: user.id, role: user.role });
+    
+    res.json({
+      user: {
+        id: user.id,
+        name: user.name,
+        phone: user.phone,
+        email: user.email,
+        role: user.role,
+        verified: user.verified,
+        avatarUrl: user.avatarUrl,
+        farmerProfile: user.farmerProfile
+      },
+      ...tokens
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Login failed' });
   }
 });
 
@@ -234,6 +341,13 @@ const otpVerify2FASchema = z.object({
   code: z.string().length(6),
 });
 
+const googleAuthSchema = z.object({
+  credential: z.string().optional(), // For web Google Identity Services
+  accessToken: z.string().optional(), // For mobile Expo Auth Session
+}).refine(data => data.credential || data.accessToken, {
+  message: 'Either credential or accessToken must be provided',
+});
+
 // Request OTP
 router.post('/otp/request', otpRateLimit, async (req, res) => {
   try {
@@ -359,6 +473,118 @@ router.post('/refresh', async (req, res) => {
   } catch (error) {
     console.error('Refresh token error:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Google authentication
+router.post('/google', async (req, res) => {
+  try {
+    const { credential, accessToken } = googleAuthSchema.parse(req.body);
+
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || '565912943332-bdga9vs4f19r91hr8r99baqng47cqo24.apps.googleusercontent.com');
+
+    let ticket;
+    if (credential) {
+      // Web: Verify JWT credential
+      ticket = await client.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID || '565912943332-bdga9vs4f19r91hr8r99baqng47cqo24.apps.googleusercontent.com',
+      });
+    } else if (accessToken) {
+      // Mobile: Get user info with access token
+      const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        return res.status(400).json({ error: 'Invalid access token' });
+      }
+
+      const userInfo = await response.json();
+
+      // Create a mock ticket object for mobile
+      ticket = {
+        getPayload: () => ({
+          sub: userInfo.id,
+          email: userInfo.email,
+          name: userInfo.name,
+          picture: userInfo.picture,
+        }),
+      };
+    }
+
+    const payload = ticket.getPayload();
+    if (!payload) {
+      return res.status(400).json({ error: 'Invalid Google token' });
+    }
+
+    const { sub: googleId, email, name, picture } = payload;
+
+    // Find or create user
+    let user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email },
+          { googleId },
+        ],
+      },
+    });
+
+    if (!user) {
+      // Create new user
+      user = await prisma.user.create({
+        data: {
+          name: name || 'Google User',
+          email,
+          googleId,
+          avatarUrl: picture,
+          role: 'CUSTOMER',
+          verified: true, // Google accounts are pre-verified
+          phone: `GOOGLE_${googleId}`, // Temporary phone for Google users
+        },
+      });
+    } else {
+      // Update existing user with Google info if not present
+      if (!user.googleId || !user.avatarUrl) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            googleId: user.googleId || googleId,
+            avatarUrl: user.avatarUrl || picture,
+            verified: true,
+          },
+        });
+      }
+    }
+
+    // Generate tokens
+    const tokens = generateTokens({
+      userId: user.id,
+      role: user.role as 'CUSTOMER' | 'FARMER' | 'ADMIN',
+      phone: user.phone,
+    });
+
+    res.json({
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      user: {
+        id: user.id,
+        role: user.role,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        avatarUrl: user.avatarUrl,
+        verified: user.verified,
+      },
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Invalid request data' });
+    }
+    console.error('Google auth error:', error);
+    res.status(500).json({ error: 'Google authentication failed' });
   }
 });
 

@@ -1,42 +1,26 @@
 {
   "expo": {
-    "name": "AgriConnect Mobile",
+    "name": "Agri-Connect",
     "slug": "agri-connect-mobile",
-    "scheme": "agriconnect",
     "version": "1.0.0",
     "orientation": "portrait",
-    "updates": {
-      "fallbackToCacheTimeout": 0
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#10B981"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.agri.connect.mobile"
+      "bundleIdentifier": "com.agriconnect.mobile"
     },
     "android": {
-      "package": "com.agri.connect.mobile"
-    },
-    "web": {
-      "bundler": "metro"
-    },
-    "extra": {
-      "apiUrl": "http://192.168.30.223:8080/api",
-      "router": {
-        "origin": false
-      }
-    },
-    "experiments": {
-      "typedRoutes": false
+      "adaptiveIcon": {
+        "backgroundColor": "#10B981"
+      },
+      "package": "com.agriconnect.mobile"
     },
     "plugins": [
-      [
-        "expo-router",
-        {
-          "origin": false
-        }
-      ]
+      "expo-font"
     ]
   }
 }

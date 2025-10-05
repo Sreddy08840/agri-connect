@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation } from 'react-query';
 import { useAuthStore } from '../stores/authStore';
 import { api } from '../lib/api';
+import { initializeGoogleSignIn, handleGoogleSignIn } from '../lib/googleAuth';
 import toast from 'react-hot-toast';
 
 const strongPassword = z.string()
@@ -129,6 +130,39 @@ export default function RegisterPage() {
     }
   );
 
+  const handleGoogleSignUp = async (response: any) => {
+    try {
+      const result = await handleGoogleSignIn(response.credential);
+      if (result.success) {
+        setUser(result.user);
+        toast.success('Google sign-up successful!');
+        if (result.user?.role === 'FARMER') {
+          window.location.href = '/farmer';
+        } else if (result.user?.role === 'ADMIN') {
+          window.location.href = 'http://localhost:5174/dashboard';
+        } else {
+          window.location.href = '/home';
+        }
+      } else {
+        toast.error(result.error || 'Google sign-up failed');
+      }
+    } catch (error) {
+      console.error('Google sign-up error:', error);
+      toast.error('Google sign-up failed');
+    }
+  };
+
+  useEffect(() => {
+    if (step === 'form') {
+      const timer = setTimeout(() => {
+        initializeGoogleSignIn(handleGoogleSignUp, (error) => {
+          console.log('Google Sign-Up prompt error:', error);
+        });
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [step]);
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -142,6 +176,23 @@ export default function RegisterPage() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {step === 'form' && (
+            <>
+              <div className="w-full mb-6">
+                <div id="google-signin-button" className="w-full"></div>
+              </div>
+
+              <div className="relative mb-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">or register with phone</span>
+                </div>
+              </div>
+            </>
+          )}
+
           {step === 'form' ? (
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div>

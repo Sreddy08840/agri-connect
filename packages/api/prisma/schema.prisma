@@ -16,6 +16,7 @@ model User {
   name          String
   email         String?
   avatarUrl     String?
+  googleId      String?  @unique // Added for Google OAuth
   address       String?  // Changed from Json to String
   verified      Boolean  @default(false)
   role          String   @default("CUSTOMER") // Changed from enum to String
