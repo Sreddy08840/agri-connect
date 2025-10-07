@@ -1,11 +1,15 @@
+import { useState } from 'react';
 import { useQuery } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
-import { Package, Clock, CheckCircle, Truck, Eye } from 'lucide-react';
+import { Package, Clock, CheckCircle, Truck, Eye, Shield, Star } from 'lucide-react';
+import { ProductReviewForm } from '../components/ProductReviewForm';
 
 type OrderItem = {
   qty: number;
+  productId: string;
   product: {
+    id: string;
     name: string;
     images?: string[];
   };
@@ -57,6 +61,7 @@ const getStatusColor = (status: string) => {
 
 export default function OrdersPage() {
   const navigate = useNavigate();
+  const [reviewingProduct, setReviewingProduct] = useState<{ id: string; name: string } | null>(null);
 
   const { data: response, isLoading, error } = useQuery<{ orders: Order[] }>(
     'orders',
@@ -152,20 +157,45 @@ export default function OrdersPage() {
                 <p className="text-lg font-bold text-gray-900">
                   ₹{order.total.toFixed(2)}
                 </p>
-                <button
-                  className="mt-2 px-3 py-1 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded text-sm font-medium flex items-center space-x-1"
-                  onClick={() => navigate(`/orders/${order.id}`)}
-                >
-                  <Eye className="h-4 w-4" />
-                  <span>View Details</span>
-                </button>
+                <div className="mt-2 flex flex-col gap-2">
+                  <button
+                    className="px-3 py-1 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded text-sm font-medium flex items-center space-x-1"
+                    onClick={() => navigate(`/orders/${order.id}`)}
+                  >
+                    <Eye className="h-4 w-4" />
+                    <span>View Details</span>
+                  </button>
+                  {order.status.toLowerCase() === 'delivered' && (
+                    <button
+                      className="px-3 py-1 bg-farmer-green-600 text-white hover:bg-farmer-green-700 rounded text-sm font-medium flex items-center space-x-1 transition-colors"
+                      onClick={() => {
+                        if (order.items.length > 0) {
+                          setReviewingProduct({
+                            id: order.items[0].product.id,
+                            name: order.items[0].product.name
+                          });
+                        }
+                      }}
+                    >
+                      <Star className="h-4 w-4" />
+                      <span>Review</span>
+                    </button>
+                  )}
+                  <button
+                    className="px-3 py-1 bg-farmer-yellow-500 text-white hover:bg-farmer-yellow-600 rounded text-sm font-medium flex items-center space-x-1 transition-colors"
+                    onClick={() => navigate(`/warranty/claim/${order.id}`)}
+                  >
+                    <Shield className="h-4 w-4" />
+                    <span>File Claim</span>
+                  </button>
+                </div>
               </div>
             </div>
             
             <div className="border-t pt-4">
               <div className="flex flex-wrap gap-2">
                 {order.items.slice(0, 3).map((item, idx) => (
-                  <div key={idx} className="flex items-center space-x-2 bg-gray-50 rounded px-3 py-2">
+                  <div key={idx} className="flex items-center space-x-2 bg-gray-50 rounded px-3 py-2 group relative">
                     <div className="h-8 w-8 bg-gray-200 rounded flex items-center justify-center">
                       {item.product.images?.[0] ? (
                         <img 
@@ -180,6 +210,21 @@ export default function OrdersPage() {
                     <span className="text-sm text-gray-700">
                       {item.product.name} x{item.qty}
                     </span>
+                    {order.status.toLowerCase() === 'delivered' && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setReviewingProduct({
+                            id: item.product.id,
+                            name: item.product.name
+                          });
+                        }}
+                        className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Review this product"
+                      >
+                        <Star className="h-4 w-4 text-farmer-yellow-500 hover:text-farmer-yellow-600" />
+                      </button>
+                    )}
                   </div>
                 ))}
                 {order.items.length > 3 && (
@@ -192,6 +237,15 @@ export default function OrdersPage() {
           </div>
         ))}
       </div>
+
+      {/* Review Form Modal */}
+      {reviewingProduct && (
+        <ProductReviewForm
+          productId={reviewingProduct.id}
+          productName={reviewingProduct.name}
+          onClose={() => setReviewingProduct(null)}
+        />
+      )}
     </div>
   );
 }

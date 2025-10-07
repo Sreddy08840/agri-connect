@@ -32,7 +32,7 @@ export default function LoginPage() {
   const credentialsForm = useForm<AdminLoginFormData>({
     resolver: zodResolver(adminLoginSchema),
     defaultValues: {
-      phone: '+919606860853', // Pre-fill admin phone
+      phone: '+918618808929', // Pre-fill admin phone
       password: ''
     }
   });
@@ -146,7 +146,7 @@ export default function LoginPage() {
                     type="tel"
                     {...credentialsForm.register('phone')}
                     className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-admin-500 focus:border-admin-500 text-white placeholder-gray-400"
-                    placeholder="+919606860853"
+                    placeholder="+918618808929"
                   />
                 </div>
                 {credentialsForm.formState.errors.phone && (

@@ -20,6 +20,7 @@ interface Product {
   description?: string;
   price: number;
   unit: string;
+  stockQty: number;
   images?: string[];
   farmer: {
     name: string;
@@ -60,6 +61,12 @@ export default function HomePage() {
   };
 
   const handleAddToCart = (product: Product) => {
+    // Check if product is in stock
+    if (product.stockQty <= 0) {
+      toast.error(`${product.name} is out of stock`);
+      return;
+    }
+    
     addItem({
       productId: product.id,
       name: product.name,
@@ -74,9 +81,9 @@ export default function HomePage() {
   };
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-16">
       {/* Hero Section with 3D Animation */}
-      <section className="relative bg-gradient-to-r from-green-600 to-green-800 text-white py-20 rounded-lg overflow-hidden">
+      <section className="relative bg-gradient-to-br from-farmer-green-600 via-farmer-green-700 to-farmer-green-800 text-white py-24 rounded-3xl overflow-hidden shadow-card-lg">
         {/* Animated Background */}
         <FloatingVegetables />
         
@@ -94,22 +101,22 @@ export default function HomePage() {
         </div>
 
         <div className="relative z-10 max-w-4xl mx-auto text-center px-4">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 animate-fade-in-up">
+          <h1 className="text-5xl md:text-7xl font-bold mb-6 animate-fade-in-up leading-tight">
             Connect Directly with Farmers
           </h1>
-          <p className="text-xl md:text-2xl mb-8 text-green-100 animate-fade-in-up delay-200">
+          <p className="text-xl md:text-2xl mb-10 text-green-50 animate-fade-in-up delay-200 leading-relaxed">
             Fresh produce, fair prices, transparent supply chain
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up delay-400">
+          <div className="flex flex-col sm:flex-row gap-5 justify-center animate-fade-in-up delay-400">
             <button 
-              className="px-8 py-4 bg-white text-green-600 hover:bg-gray-100 rounded-lg font-semibold flex items-center justify-center transform hover:scale-105 transition-all duration-200 shadow-lg"
+              className="px-10 py-4 bg-white text-farmer-green-700 hover:bg-farmer-beige-50 rounded-2xl font-semibold flex items-center justify-center transform hover:scale-105 transition-all duration-200 shadow-xl text-lg"
               onClick={handleShopNow}
             >
-              <ShoppingBag className="mr-2 h-5 w-5" />
-              Browse Products
+              <ShoppingBag className="mr-2 h-6 w-6" />
+              Shop Now
             </button>
             <button 
-              className="px-8 py-4 border-2 border-white text-white hover:bg-white hover:text-green-600 rounded-lg font-semibold transform hover:scale-105 transition-all duration-200"
+              className="px-10 py-4 border-2 border-white text-white hover:bg-white hover:text-farmer-green-700 rounded-2xl font-semibold transform hover:scale-105 transition-all duration-200 text-lg"
               onClick={handleLearnMore}
             >
               Learn More
@@ -119,67 +126,70 @@ export default function HomePage() {
       </section>
 
       {/* Features */}
-      <section id="features" className="py-16">
+      <section id="features" className="py-8">
         <div className="grid md:grid-cols-3 gap-8">
-          <div className="text-center">
-            <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Truck className="h-8 w-8 text-green-600" />
+          <div className="bg-white rounded-2xl p-8 text-center shadow-card hover:shadow-card-hover transition-all duration-300 border border-farmer-beige-200 group">
+            <div className="bg-gradient-to-br from-farmer-green-100 to-farmer-green-200 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform duration-300">
+              <Truck className="h-10 w-10 text-farmer-green-700" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">Direct Delivery</h3>
-            <p className="text-gray-600">Fresh produce delivered directly from farm to your doorstep</p>
+            <h3 className="text-2xl font-semibold mb-3 text-gray-900">Direct Delivery</h3>
+            <p className="text-gray-600 leading-relaxed">Fresh produce delivered directly from farm to your doorstep</p>
           </div>
           
-          <div className="text-center">
-            <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Shield className="h-8 w-8 text-green-600" />
+          <div className="bg-white rounded-2xl p-8 text-center shadow-card hover:shadow-card-hover transition-all duration-300 border border-farmer-beige-200 group">
+            <div className="bg-gradient-to-br from-farmer-green-100 to-farmer-green-200 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform duration-300">
+              <Shield className="h-10 w-10 text-farmer-green-700" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">Verified Farmers</h3>
-            <p className="text-gray-600">All farmers are verified and quality-checked</p>
+            <h3 className="text-2xl font-semibold mb-3 text-gray-900">Verified Farmers</h3>
+            <p className="text-gray-600 leading-relaxed">All farmers are verified and quality-checked</p>
           </div>
           
-          <div className="text-center">
-            <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Heart className="h-8 w-8 text-green-600" />
+          <div className="bg-white rounded-2xl p-8 text-center shadow-card hover:shadow-card-hover transition-all duration-300 border border-farmer-beige-200 group">
+            <div className="bg-gradient-to-br from-farmer-green-100 to-farmer-green-200 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform duration-300">
+              <Heart className="h-10 w-10 text-farmer-green-700" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">Fair Prices</h3>
-            <p className="text-gray-600">Support farmers with fair, transparent pricing</p>
+            <h3 className="text-2xl font-semibold mb-3 text-gray-900">Fair Prices</h3>
+            <p className="text-gray-600 leading-relaxed">Support farmers with fair, transparent pricing</p>
           </div>
         </div>
       </section>
 
       {/* Categories */}
       <section>
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-3xl font-bold">Shop by Category</h2>
+        <div className="flex justify-between items-center mb-10">
+          <div>
+            <h2 className="text-4xl font-bold text-gray-900 mb-2">Shop by Category</h2>
+            <p className="text-gray-600 text-lg">Explore our wide range of fresh produce</p>
+          </div>
           <button 
-            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors"
+            className="flex items-center px-6 py-3 bg-gradient-to-r from-farmer-green-600 to-farmer-green-700 text-white rounded-xl hover:from-farmer-green-700 hover:to-farmer-green-800 font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
             onClick={() => navigate('/cart')}
           >
-            <ShoppingBag className="mr-2 h-4 w-4" />
+            <ShoppingBag className="mr-2 h-5 w-5" />
             View Cart
           </button>
         </div>
         {categoriesLoading ? (
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-8">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-gray-200 h-32 rounded-lg animate-pulse" />
+              <div key={i} className="bg-gradient-to-br from-farmer-beige-100 to-farmer-beige-200 h-64 rounded-2xl animate-pulse" />
             ))}
           </div>
         ) : (
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-8">
             {categories?.map((category) => (
-              <div key={category.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-200 transform hover:scale-105 cursor-pointer border-2 border-transparent hover:border-green-200">
-                <div className="text-center mb-4">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <span className="text-2xl">🌱</span>
+              <div key={category.id} className="bg-white rounded-2xl shadow-card hover:shadow-card-hover p-8 transition-all duration-300 transform hover:-translate-y-2 cursor-pointer border border-farmer-beige-200 hover:border-farmer-green-300 group">
+                <div className="text-center mb-6">
+                  <div className="w-20 h-20 bg-gradient-to-br from-farmer-green-100 to-farmer-green-200 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                    <span className="text-4xl">🌱</span>
                   </div>
-                  <h3 className="text-xl font-semibold mb-2">{category.name}</h3>
-                  <p className="text-gray-600 mb-4">
+                  <h3 className="text-2xl font-semibold mb-2 text-gray-900">{category.name}</h3>
+                  <p className="text-gray-600">
                     {category.children?.length || 0} subcategories
                   </p>
                 </div>
                 <button 
-                  className="w-full px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg font-semibold transition-colors"
+                  className="w-full px-6 py-3 bg-gradient-to-r from-farmer-green-600 to-farmer-green-700 text-white hover:from-farmer-green-700 hover:to-farmer-green-800 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
                   onClick={() => handleBrowseCategory(category.slug)}
                 >
                   Browse {category.name}
@@ -192,50 +202,72 @@ export default function HomePage() {
 
       {/* Featured Products */}
       <section>
-        <h2 className="text-3xl font-bold text-center mb-8">Featured Products</h2>
+        <div className="text-center mb-10">
+          <h2 className="text-4xl font-bold text-gray-900 mb-3">Featured Products</h2>
+          <p className="text-gray-600 text-lg">Handpicked fresh produce from our best farmers</p>
+        </div>
         {productsLoading ? (
-          <div className="grid md:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[...Array(8)].map((_, i) => (
-              <div key={i} className="bg-gray-200 h-64 rounded-lg animate-pulse" />
+              <div key={i} className="bg-gradient-to-br from-farmer-beige-100 to-farmer-beige-200 h-96 rounded-2xl animate-pulse" />
             ))}
           </div>
         ) : (
-          <div className="grid md:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {featuredProducts?.products.map((product) => (
-              <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                <div className="h-48 bg-gray-200 flex items-center justify-center">
-                  {product.images?.[0] ? (
-                    <img 
-                      src={product.images[0]} 
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <ShoppingBag className="h-12 w-12 text-gray-400" />
-                  )}
-                </div>
-                <div className="p-4">
-                  <h3 className="font-semibold mb-2">{product.name}</h3>
-                  <p className="text-sm text-gray-600 mb-2">
-                    by {product.farmer.farmerProfile?.businessName || product.farmer.name}
-                  </p>
-                  <div className="flex justify-between items-center">
-                    <span className="text-lg font-bold text-green-600">
-                      ₹{product.price}/{product.unit}
-                    </span>
-                    <div className="flex gap-2">
-                      <button 
-                        className="flex-1 px-3 py-1 bg-green-600 text-white hover:bg-green-700 rounded text-sm font-semibold transition-colors"
-                        onClick={() => handleAddToCart(product)}
-                      >
-                        Add to Cart
-                      </button>
-                      <button 
-                        className="px-3 py-1 border border-green-600 text-green-600 hover:bg-green-50 rounded text-sm font-semibold transition-colors"
-                        onClick={() => navigate(`/products/${product.id}`)}
-                      >
-                        View
-                      </button>
+              <div key={product.id} className="group">
+                <div className="bg-white rounded-2xl shadow-card hover:shadow-card-hover overflow-hidden transition-all duration-300 border border-farmer-beige-200 group-hover:border-farmer-green-300 transform group-hover:-translate-y-1">
+                  <div className="relative h-56 bg-gradient-to-br from-farmer-beige-100 to-farmer-beige-200">
+                    {product.images?.[0] ? (
+                      <img 
+                        src={product.images[0]} 
+                        alt={product.name}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <ShoppingBag className="h-16 w-16 text-gray-300" />
+                      </div>
+                    )}
+                    {product.stockQty <= 0 && (
+                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                        <span className="text-white font-bold text-xl bg-red-600 px-4 py-2 rounded-lg">
+                          OUT OF STOCK
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-5 space-y-3">
+                    <h3 className="font-semibold text-lg text-gray-900 line-clamp-2 group-hover:text-farmer-green-700 transition-colors">{product.name}</h3>
+                    <p className="text-sm text-gray-600 line-clamp-1">
+                      by <span className="font-medium text-farmer-brown-700">{product.farmer.farmerProfile?.businessName || product.farmer.name}</span>
+                    </p>
+                    <div className="flex justify-between items-center pt-2 border-t border-farmer-beige-200">
+                      <div className="flex flex-col">
+                        <span className="text-2xl font-bold text-farmer-green-600">
+                          ₹{product.price}
+                        </span>
+                        <span className="text-xs text-gray-500">per {product.unit}</span>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <button 
+                          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 shadow-md ${
+                            product.stockQty <= 0
+                              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              : 'bg-gradient-to-r from-farmer-green-600 to-farmer-green-700 text-white hover:from-farmer-green-700 hover:to-farmer-green-800 hover:shadow-lg transform hover:scale-105'
+                          }`}
+                          onClick={() => handleAddToCart(product)}
+                          disabled={product.stockQty <= 0}
+                        >
+                          {product.stockQty <= 0 ? 'Out of Stock' : 'Add'}
+                        </button>
+                        <button 
+                          className="px-4 py-2 border-2 border-farmer-green-600 text-farmer-green-600 hover:bg-farmer-green-50 rounded-xl text-sm font-semibold transition-all duration-200"
+                          onClick={() => navigate(`/products/${product.id}`)}
+                        >
+                          View
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

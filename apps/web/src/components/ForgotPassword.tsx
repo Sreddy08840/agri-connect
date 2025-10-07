@@ -6,8 +6,8 @@ import { useMutation } from 'react-query';
 import { api } from '../lib/api';
 import toast from 'react-hot-toast';
 
-const phoneSchema = z.object({
-  phone: z.string().min(5, 'Enter a valid phone number'),
+const identifierSchema = z.object({
+  identifier: z.string().min(1, 'Enter your email or phone number'),
 });
 
 const resetSchema = z.object({
@@ -25,7 +25,7 @@ const resetSchema = z.object({
   path: ['confirmPassword'],
 });
 
-type PhoneFormData = z.infer<typeof phoneSchema>;
+type IdentifierFormData = z.infer<typeof identifierSchema>;
 type ResetFormData = z.infer<typeof resetSchema>;
 
 interface ForgotPasswordProps {
@@ -34,15 +34,13 @@ interface ForgotPasswordProps {
 }
 
 export default function ForgotPassword({ onBack, onSuccess }: ForgotPasswordProps) {
-  const [step, setStep] = useState<'phone' | 'reset'>('phone');
-  // Remove unused phone state - we don't need to store it
-  const [country, setCountry] = useState<'IN' | 'US' | 'GB' | 'AE' | 'SG' | 'AU' | 'CA'>('IN');
+  const [step, setStep] = useState<'identifier' | 'reset'>('identifier');
   const [pendingResetId, setPendingResetId] = useState('');
   const [devOTPCode, setDevOTPCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const phoneForm = useForm<PhoneFormData>({
-    resolver: zodResolver(phoneSchema),
+  const identifierForm = useForm<IdentifierFormData>({
+    resolver: zodResolver(identifierSchema),
   });
 
   const resetForm = useForm<ResetFormData>({
@@ -54,44 +52,6 @@ export default function ForgotPassword({ onBack, onSuccess }: ForgotPasswordProp
   const watchedNewPassword = resetForm.watch('newPassword') || '';
   const watchedConfirmPassword = resetForm.watch('confirmPassword') || '';
 
-  // Country dial codes
-  const countryDialMap: Record<string, string> = {
-    IN: '+91',
-    US: '+1',
-    GB: '+44',
-    AE: '+971',
-    SG: '+65',
-    AU: '+61',
-    CA: '+1',
-  };
-
-  // Format phone to E.164
-  const toE164 = (rawPhone: string, countryCode: string) => {
-    const input = (rawPhone || '').replace(/\s|-/g, '').trim();
-    if (!input) return null;
-    
-    if (input.startsWith('+')) {
-      return /^\+[1-9]\d{7,14}$/.test(input) ? input : null;
-    }
-    
-    const dial = countryDialMap[countryCode] || '';
-    const digits = input.replace(/\D/g, '');
-    const candidate = `${dial}${digits}`;
-    return /^\+[1-9]\d{7,14}$/.test(candidate) ? candidate : null;
-  };
-
-  // Format example phone for country
-  const formatExampleForCountry = (c: string) => {
-    switch (c) {
-      case 'US': return '+14155551234';
-      case 'GB': return '+447911123456';
-      case 'AE': return '+971501234567';
-      case 'SG': return '+6581234567';
-      case 'AU': return '+61412345678';
-      case 'CA': return '+16475551234';
-      default: return '+911234567890';
-    }
-  };
 
   // Password strength calculation
   const computeStrength = (pw: string) => {
@@ -108,23 +68,31 @@ export default function ForgotPassword({ onBack, onSuccess }: ForgotPasswordProp
 
   // Send OTP mutation
   const sendOTPMutation = useMutation(
-    (phoneNumber: string) => api.post('/auth/password/forgot', { phone: phoneNumber }),
+    (phoneNumber: string) => api.post('/users/forgot-password', { identifier: phoneNumber }),
     {
       retry: false,
       onSuccess: (response) => {
-        const { pendingSessionId, code } = response.data;
-        setPendingResetId(pendingSessionId);
-        setStep('reset');
+        // Updated to match the new API response structure
+        const { resetUrl } = response.data;
         
-        if (import.meta.env.VITE_NODE_ENV === 'development' && code) {
-          setDevOTPCode(code);
+        // In development, we get the reset URL directly
+        if (import.meta.env.VITE_NODE_ENV === 'development' && resetUrl) {
+          // Extract token from URL for development mode
+          const tokenMatch = resetUrl.match(/token=([^&]+)/);
+          if (tokenMatch) {
+            setPendingResetId(tokenMatch[1]);
+            setStep('reset');
+            toast.success('Reset link generated! Enter the OTP code.');
+            return;
+          }
         }
         
-        toast.success('OTP sent to your phone');
+        toast.success('Reset instructions sent to your phone');
+        setStep('reset');
       },
       onError: (error: any) => {
         console.error('Forgot password error:', error);
-        const errorMessage = error.response?.data?.error || 'Failed to send OTP';
+        const errorMessage = error.response?.data?.error || 'Failed to send reset instructions';
         toast.error(errorMessage);
       },
     }
@@ -133,10 +101,10 @@ export default function ForgotPassword({ onBack, onSuccess }: ForgotPasswordProp
   // Reset password mutation
   const resetPasswordMutation = useMutation(
     (data: { code: string; newPassword: string }) =>
-      api.post('/auth/password/reset', {
-        pendingSessionId: pendingResetId,
-        code: data.code,
+      api.post('/users/reset-password', {
+        token: pendingResetId,
         newPassword: data.newPassword,
+        confirmPassword: data.newPassword,
       }),
     {
       retry: false,
@@ -152,17 +120,9 @@ export default function ForgotPassword({ onBack, onSuccess }: ForgotPasswordProp
     }
   );
 
-  const onPhoneSubmit = (data: PhoneFormData) => {
+  const onIdentifierSubmit = (data: IdentifierFormData) => {
     if (sendOTPMutation.isLoading) return;
-    
-    const e164Phone = toE164(data.phone, country);
-    if (!e164Phone) {
-      toast.error('Please enter a valid phone number');
-      return;
-    }
-    
-    // Phone validated and ready to send OTP
-    sendOTPMutation.mutate(e164Phone);
+    sendOTPMutation.mutate(data.identifier);
   };
 
   const onResetSubmit = (data: ResetFormData) => {
@@ -176,46 +136,33 @@ export default function ForgotPassword({ onBack, onSuccess }: ForgotPasswordProp
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-2xl font-semibold text-gray-900">
-          {step === 'phone' ? 'Forgot Password' : 'Reset Password'}
+          {step === 'identifier' ? 'Forgot Password' : 'Reset Password'}
         </h2>
         <p className="mt-2 text-sm text-gray-600">
-          {step === 'phone' 
-            ? 'Enter your phone number to receive a reset code'
+          {step === 'identifier' 
+            ? 'Enter your email or phone number to reset your password'
             : 'Enter the code and your new password'
           }
         </p>
       </div>
 
-      {step === 'phone' && (
-        <form onSubmit={phoneForm.handleSubmit(onPhoneSubmit)} className="space-y-4">
+      {step === 'identifier' && (
+        <form onSubmit={identifierForm.handleSubmit(onIdentifierSubmit)} className="space-y-4">
           <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-              Phone Number
+            <label htmlFor="identifier" className="block text-sm font-medium text-gray-700">
+              Email or Phone Number
             </label>
-            <div className="mt-1 flex gap-2">
-              <select
-                value={country}
-                onChange={(e) => setCountry(e.target.value as any)}
-                className="px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-              >
-                <option value="IN">India (+91)</option>
-                <option value="US">United States (+1)</option>
-                <option value="GB">United Kingdom (+44)</option>
-                <option value="AE">UAE (+971)</option>
-                <option value="SG">Singapore (+65)</option>
-                <option value="AU">Australia (+61)</option>
-                <option value="CA">Canada (+1)</option>
-              </select>
+            <div className="mt-1">
               <input
-                {...phoneForm.register('phone')}
-                type="tel"
-                placeholder={formatExampleForCountry(country)}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                {...identifierForm.register('identifier')}
+                type="text"
+                placeholder="email@example.com or +911234567890"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
-            {phoneForm.formState.errors.phone && (
+            {identifierForm.formState.errors.identifier && (
               <p className="mt-1 text-sm text-red-600">
-                {phoneForm.formState.errors.phone.message}
+                {identifierForm.formState.errors.identifier.message}
               </p>
             )}
           </div>
@@ -233,7 +180,7 @@ export default function ForgotPassword({ onBack, onSuccess }: ForgotPasswordProp
               disabled={sendOTPMutation.isLoading}
               className="flex-1 px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-md font-medium disabled:opacity-50"
             >
-              {sendOTPMutation.isLoading ? 'Sending...' : 'Send Reset Code'}
+              {sendOTPMutation.isLoading ? 'Sending...' : 'Send Reset Link'}
             </button>
           </div>
         </form>
@@ -344,7 +291,7 @@ export default function ForgotPassword({ onBack, onSuccess }: ForgotPasswordProp
           <div className="flex space-x-3">
             <button
               type="button"
-              onClick={() => setStep('phone')}
+              onClick={() => setStep('identifier')}
               className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-md font-medium"
             >
               Back

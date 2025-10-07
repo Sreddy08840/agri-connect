@@ -1,36 +1,10 @@
-import { Mail, MapPin, Globe, Facebook, MessageCircle, Phone, LogIn } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useAuthStore } from '../../stores/authStore';
+import { Mail, MapPin, Globe, Facebook, MessageCircle, Phone } from 'lucide-react';
 
 export default function Footer() {
-  const { user } = useAuthStore();
   
   return (
     <footer className="bg-[#111] text-gray-300 mt-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        {/* Sign In Section for Non-authenticated Users */}
-        {!user && (
-          <div className="text-center mb-8 py-6 border-b border-gray-800">
-            <h3 className="text-xl font-semibold text-white mb-4">Ready to get started?</h3>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Link 
-                to="/login" 
-                className="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors"
-              >
-                <LogIn className="h-5 w-5 mr-2" />
-                Sign In
-              </Link>
-              <span className="text-gray-400">or</span>
-              <Link 
-                to="/register" 
-                className="inline-flex items-center px-6 py-3 border border-green-600 text-green-600 rounded-lg hover:bg-green-50 hover:text-green-700 font-medium transition-colors"
-              >
-                Create Account
-              </Link>
-            </div>
-          </div>
-        )}
-        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
             <div className="flex items-center gap-2 mb-3">

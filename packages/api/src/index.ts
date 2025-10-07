@@ -20,6 +20,10 @@ import userRoutes from './routes/users';
 import uploadRoutes from './routes/upload';
 import setupAdminRoutes from './routes/setup-admin';
 import adminCleanupRoutes from './routes/admin/cleanup';
+import eventsRoutes from './routes/events';
+import recommendationsRoutes from './routes/recommendations';
+import warrantyRoutes from './routes/warranty';
+import reviewsRoutes from './routes/reviews';
 
 const app = express();
 const server = createServer(app);
@@ -95,6 +99,10 @@ app.use('/api/users', userRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/setup', setupAdminRoutes);
 app.use('/api/admin/cleanup', adminCleanupRoutes);
+app.use('/api/events', eventsRoutes);
+app.use('/api/recommendations', recommendationsRoutes);
+app.use('/api/warranty', warrantyRoutes);
+app.use('/api/reviews', reviewsRoutes);
 
 // Socket.IO for real-time features
 io.on('connection', (socket) => {
@@ -118,6 +126,34 @@ io.on('connection', (socket) => {
   socket.on('leave-farmer-room', (farmerId: string) => {
     socket.leave(`farmer:${farmerId}`);
     console.log(`Socket ${socket.id} left farmer room: ${farmerId}`);
+  });
+
+  // Customer-specific room for notifications
+  socket.on('join-customer-room', (customerId: string) => {
+    socket.join(`customer:${customerId}`);
+    console.log(`Socket ${socket.id} joined customer room: ${customerId}`);
+  });
+  socket.on('leave-customer-room', (customerId: string) => {
+    socket.leave(`customer:${customerId}`);
+    console.log(`Socket ${socket.id} left customer room: ${customerId}`);
+  });
+
+  // Chat-specific rooms
+  socket.on('join-chat-room', (chatId: string) => {
+    socket.join(`chat:${chatId}`);
+    console.log(`Socket ${socket.id} joined chat room: ${chatId}`);
+  });
+  socket.on('leave-chat-room', (chatId: string) => {
+    socket.leave(`chat:${chatId}`);
+    console.log(`Socket ${socket.id} left chat room: ${chatId}`);
+  });
+
+  // Typing indicators
+  socket.on('typing-start', (data: { chatId: string; userId: string; userName: string }) => {
+    socket.to(`chat:${data.chatId}`).emit('user-typing', { userId: data.userId, userName: data.userName });
+  });
+  socket.on('typing-stop', (data: { chatId: string; userId: string }) => {
+    socket.to(`chat:${data.chatId}`).emit('user-stopped-typing', { userId: data.userId });
   });
 
   // Admin room for moderation/metrics updates

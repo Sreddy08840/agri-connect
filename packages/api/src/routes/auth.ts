@@ -12,16 +12,12 @@ import { OAuth2Client } from 'google-auth-library';
 const router = Router();
 
 const otpRequestSchema = z.object({
-  phone: z
-    .string()
-    .regex(/^\+[1-9]\d{7,14}$/, 'Phone must be in international E.164 format, e.g., +14155551234'),
+  email: z.string().email('Invalid email address'),
 });
 
 // Password reset schemas
 const passwordForgotSchema = z.object({
-  phone: z
-    .string()
-    .regex(/^\+[1-9]\d{7,14}$/, 'Phone must be in international E.164 format, e.g., +14155551234'),
+  email: z.string().email('Invalid email address'),
 });
 
 const passwordResetSchema = z.object({
@@ -33,21 +29,23 @@ const passwordResetSchema = z.object({
 // Forgot password (Step 1: request OTP for existing user)
 router.post('/password/forgot', otpRateLimit, async (req, res) => {
   try {
-    const { phone } = passwordForgotSchema.parse(req.body);
+    const { email } = passwordForgotSchema.parse(req.body);
 
-    const user = await prisma.user.findUnique({ where: { phone } });
+    const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
     const { otpStore } = await import('../services/otpStore');
-    const code = await otpStore.storeOTP(phone);
-    const sent = await otpService.sendOTP(phone, code);
+    const code = await otpStore.storeOTP(email);
+    
+    const { emailService } = await import('../services/emailService');
+    const sent = await emailService.sendOTPEmail(email, code, user.name);
     if (!sent) {
       return res.status(500).json({ error: 'Failed to send OTP' });
     }
 
-    const pending = createPendingSession({ phone, userId: user.id });
+    const pending = createPendingSession({ phone: email, userId: user.id });
     res.json({ 
       success: true, 
       pendingSessionId: pending.id,
@@ -96,24 +94,33 @@ router.post('/password/reset', async (req, res) => {
 // Simple registration for mobile app (no OTP required)
 router.post('/register', async (req, res) => {
   try {
-    const { name, phone, email, password, role, businessName } = req.body;
+    const { name, email, phone, password, role, businessName } = req.body;
     
-    // Validation
-    if (!name || !phone || !password) {
-      return res.status(400).json({ error: 'Name, phone, and password are required' });
+    // Validation - require at least email or phone
+    if (!name || (!email && !phone) || !password) {
+      return res.status(400).json({ error: 'Name, email/phone, and password are required' });
     }
     
-    const existing = await prisma.user.findUnique({ where: { phone } });
+    // Check if user already exists by email or phone
+    const existing = await prisma.user.findFirst({
+      where: {
+        OR: [
+          email ? { email } : undefined,
+          phone ? { phone } : undefined,
+        ].filter(Boolean) as any
+      }
+    });
+    
     if (existing) {
-      return res.status(400).json({ error: 'Phone already registered' });
+      return res.status(400).json({ error: 'User already registered with this email or phone' });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
     
     const userData: any = {
       name,
-      phone,
-      email: email || undefined,
+      email: email || null,
+      phone: phone || email, // Use email as phone if phone not provided
       passwordHash,
       role: role || 'CUSTOMER',
       verified: true, // Auto-verify for mobile
@@ -154,14 +161,20 @@ router.post('/register', async (req, res) => {
 // Simple login for mobile app (no OTP required)
 router.post('/login', async (req, res) => {
   try {
-    const { phone, password, role } = req.body;
+    const { email, phone, password, role } = req.body;
     
-    if (!phone || !password) {
-      return res.status(400).json({ error: 'Phone and password are required' });
+    if ((!email && !phone) || !password) {
+      return res.status(400).json({ error: 'Email/phone and password are required' });
     }
     
-    const user = await prisma.user.findUnique({
-      where: { phone },
+    // Find user by email or phone
+    let user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          email ? { email } : undefined,
+          phone ? { phone } : undefined,
+        ].filter(Boolean) as any
+      },
       include: { farmerProfile: true }
     });
 
@@ -202,26 +215,70 @@ router.post('/login', async (req, res) => {
 // Register with password (Step 1: credentials -> send OTP)
 router.post('/register-password', otpRateLimit, async (req, res) => {
   try {
-    const { name, phone, password, role } = registerPasswordSchema.parse(req.body);
+    const { name, email, phone, password, role, businessName, farmAddress, farmType } = req.body;
 
-    const existing = await prisma.user.findUnique({ where: { phone } });
+    if (!name || (!email && !phone) || !password) {
+      return res.status(400).json({ error: 'Name, email/phone, and password are required' });
+    }
+
+    // Check if user exists by email or phone
+    const existing = await prisma.user.findFirst({
+      where: {
+        OR: [
+          email ? { email } : undefined,
+          phone ? { phone } : undefined,
+        ].filter(Boolean) as any
+      }
+    });
+    
     if (existing?.passwordHash) {
       return res.status(400).json({ error: 'User already exists. Please login.' });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const user = existing
-      ? await prisma.user.update({ where: { phone }, data: { name, passwordHash, role } })
-      : await prisma.user.create({ data: { name, phone, passwordHash, role } });
+    
+    const userData: any = {
+      name,
+      email: email || null,
+      phone: phone || email, // Use email as phone if phone not provided
+      passwordHash,
+      role: role || 'CUSTOMER',
+    };
 
-    const { otpStore } = await import('../services/otpStore');
-    const code = await otpStore.storeOTP(phone);
-    const sent = await otpService.sendOTP(phone, code);
-    if (!sent) {
-      return res.status(500).json({ error: 'Failed to send OTP' });
+    // Add farmer profile data if registering as farmer
+    if (role === 'FARMER' && businessName) {
+      userData.farmerProfile = {
+        create: {
+          businessName,
+          ...(farmAddress && { location: farmAddress }),
+          ...(farmType && { description: `Farm Type: ${farmType}` })
+        }
+      };
     }
 
-    const pending = createPendingSession({ phone, userId: user.id });
+    const user = existing
+      ? await prisma.user.update({ where: { id: existing.id }, data: userData })
+      : await prisma.user.create({ data: userData, include: { farmerProfile: true } });
+
+    // Send OTP to email if provided, otherwise to phone
+    const otpTarget = email || phone;
+    const { otpStore } = await import('../services/otpStore');
+    const code = await otpStore.storeOTP(otpTarget!);
+    
+    if (email) {
+      const { emailService } = await import('../services/emailService');
+      const sent = await emailService.sendOTPEmail(email, code, name);
+      if (!sent) {
+        return res.status(500).json({ error: 'Failed to send OTP' });
+      }
+    } else {
+      const sent = await otpService.sendOTP(phone!, code);
+      if (!sent) {
+        return res.status(500).json({ error: 'Failed to send OTP' });
+      }
+    }
+
+    const pending = createPendingSession({ phone: otpTarget!, userId: user.id });
     res.json({ success: true, pendingSessionId: pending.id, ...(process.env.NODE_ENV === 'development' && { code }) });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -235,8 +292,22 @@ router.post('/register-password', otpRateLimit, async (req, res) => {
 // Login with password (Step 1: verify password -> send OTP)
 router.post('/login-password', otpRateLimit, async (req, res) => {
   try {
-    const { phone, password } = loginPasswordSchema.parse(req.body);
-    const user = await prisma.user.findUnique({ where: { phone } });
+    const { email, phone, password } = req.body;
+    
+    if ((!email && !phone) || !password) {
+      return res.status(400).json({ error: 'Email/phone and password are required' });
+    }
+    
+    // Find user by email or phone
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          email ? { email } : undefined,
+          phone ? { phone } : undefined,
+        ].filter(Boolean) as any
+      }
+    });
+    
     if (!user || !user.passwordHash) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -245,14 +316,25 @@ router.post('/login-password', otpRateLimit, async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    // Send OTP to email if provided, otherwise to phone
+    const otpTarget = email || phone;
     const { otpStore } = await import('../services/otpStore');
-    const code = await otpStore.storeOTP(phone);
-    const sent = await otpService.sendOTP(phone, code);
-    if (!sent) {
-      return res.status(500).json({ error: 'Failed to send OTP' });
+    const code = await otpStore.storeOTP(otpTarget!);
+    
+    if (user.email && email) {
+      const { emailService } = await import('../services/emailService');
+      const sent = await emailService.sendOTPEmail(user.email, code, user.name);
+      if (!sent) {
+        return res.status(500).json({ error: 'Failed to send OTP' });
+      }
+    } else {
+      const sent = await otpService.sendOTP(user.phone, code);
+      if (!sent) {
+        return res.status(500).json({ error: 'Failed to send OTP' });
+      }
     }
 
-    const pending = createPendingSession({ phone, userId: user.id });
+    const pending = createPendingSession({ phone: otpTarget!, userId: user.id });
     res.json({ success: true, pendingSessionId: pending.id, ...(process.env.NODE_ENV === 'development' && { code }) });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -312,9 +394,7 @@ router.post('/otp/verify-2fa', async (req, res) => {
 });
 
 const otpVerifySchema = z.object({
-  phone: z
-    .string()
-    .regex(/^\+[1-9]\d{7,14}$/, 'Phone must be in international E.164 format, e.g., +14155551234'),
+  email: z.string().email('Invalid email address'),
   code: z.string().length(6),
   name: z.string().min(2).max(100).optional(),
 });
@@ -322,17 +402,13 @@ const otpVerifySchema = z.object({
 // Two-step auth schemas
 const registerPasswordSchema = z.object({
   name: z.string().min(2).max(100),
-  phone: z
-    .string()
-    .regex(/^\+[1-9]\d{7,14}$/, 'Phone must be in international E.164 format, e.g., +14155551234'),
+  email: z.string().email('Invalid email address'),
   password: z.string().min(6).max(100),
   role: z.enum(['CUSTOMER', 'FARMER']).default('CUSTOMER'),
 });
 
 const loginPasswordSchema = z.object({
-  phone: z
-    .string()
-    .regex(/^\+[1-9]\d{7,14}$/, 'Phone must be in international E.164 format, e.g., +14155551234'),
+  email: z.string().email('Invalid email address'),
   password: z.string().min(6).max(100),
 });
 
@@ -351,12 +427,16 @@ const googleAuthSchema = z.object({
 // Request OTP
 router.post('/otp/request', otpRateLimit, async (req, res) => {
   try {
-    const { phone } = otpRequestSchema.parse(req.body);
+    const { email } = otpRequestSchema.parse(req.body);
+
+    // Find user to get their name
+    const user = await prisma.user.findUnique({ where: { email } });
 
     const { otpStore } = await import('../services/otpStore');
-    const code = await otpStore.storeOTP(phone);
+    const code = await otpStore.storeOTP(email);
     
-    const success = await otpService.sendOTP(phone, code);
+    const { emailService } = await import('../services/emailService');
+    const success = await emailService.sendOTPEmail(email, code, user?.name);
     
     if (!success) {
       return res.status(500).json({ error: 'Failed to send OTP' });
@@ -369,7 +449,7 @@ router.post('/otp/request', otpRateLimit, async (req, res) => {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid phone number' });
+      return res.status(400).json({ error: 'Invalid email address' });
     }
     console.error('OTP request error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -379,12 +459,12 @@ router.post('/otp/request', otpRateLimit, async (req, res) => {
 // Verify OTP and login/register
 router.post('/otp/verify', async (req, res) => {
   try {
-    const { phone, code, name } = otpVerifySchema.parse(req.body);
+    const { email, code, name } = otpVerifySchema.parse(req.body);
     
-    console.log(`[AUTH] Verifying OTP for ${phone} with code ${code}`);
+    console.log(`[AUTH] Verifying OTP for ${email} with code ${code}`);
 
     const { otpStore } = await import('../services/otpStore');
-    const isValid = await otpStore.verifyOTP(phone, code);
+    const isValid = await otpStore.verifyOTP(email, code);
     console.log(`[AUTH] OTP verification result: ${isValid}`);
     
     if (!isValid) {
@@ -393,7 +473,7 @@ router.post('/otp/verify', async (req, res) => {
 
     // Find or create user
     let user = await prisma.user.findUnique({
-      where: { phone },
+      where: { email },
     });
 
     if (!user) {
@@ -403,7 +483,8 @@ router.post('/otp/verify', async (req, res) => {
 
       user = await prisma.user.create({
         data: {
-          phone,
+          email,
+          phone: email, // Use email as phone for compatibility
           name,
           role: 'CUSTOMER',
         },
@@ -425,6 +506,7 @@ router.post('/otp/verify', async (req, res) => {
         role: user.role,
         name: user.name,
         phone: user.phone,
+        email: user.email,
         verified: user.verified,
       },
     });

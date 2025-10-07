@@ -6,6 +6,7 @@ import { CreditCard, Truck } from 'lucide-react';
 import { useCartStore } from '../stores/cartStore';
 import { api } from '../lib/api';
 import { useAuthStore } from '../stores/authStore';
+import { trackPurchase } from '../utils/events';
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -73,6 +74,24 @@ export default function CheckoutPage() {
     {
       onSuccess: (order) => {
         toast.success('Order placed successfully!');
+        
+        // Track purchase event
+        trackPurchase(
+          user?.id,
+          total,
+          {
+            orderId: order.id,
+            itemCount: items.length,
+            paymentMethod: 'COD',
+            items: items.map(i => ({
+              productId: i.productId,
+              name: i.name,
+              quantity: i.qty,
+              price: i.price
+            }))
+          }
+        );
+        
         clearCart();
         navigate(`/order-confirmation/${order.id}`);
       },

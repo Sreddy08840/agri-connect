@@ -24,10 +24,11 @@ const FarmerOrdersScreen: React.FC<Props> = ({ navigation }) => {
 
   const fetchOrders = async () => {
     try {
-      const response = await api.get('/orders/farmer/my-orders');
-      setOrders(response.data || []);
-    } catch (error) {
+      const response = await api.get('/orders/farmer-orders');
+      setOrders(response.data.orders || []);
+    } catch (error: any) {
       console.error('Failed to fetch orders:', error);
+      setOrders([]);
     } finally {
       setLoading(false);
       setRefreshing(false);

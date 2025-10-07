@@ -9,8 +9,8 @@ async function createAdmin() {
     const dbPath = path.join(__dirname, 'prisma', 'dev.db');
     const db = new sqlite3.Database(dbPath);
     
-    const adminPhone = '+919606860853';
-    const adminPassword = 'Santosh@123';
+    const adminPhone = '+918618808929';
+    const adminPassword = 'Santosh@1234';
     const adminName = 'Santosh Admin';
     
     // Hash the password
@@ -36,8 +36,8 @@ async function createAdmin() {
             } else {
               console.log('✅ Admin user updated successfully!');
               console.log('\n🎯 Admin Login Credentials:');
-              console.log('Phone: +919606860853');
-              console.log('Password: Santosh@123');
+              console.log('Phone: +918618808929');
+              console.log('Password: Santosh@1234');
               console.log('URL: http://localhost:5174/admin-login');
             }
             db.close();
@@ -51,14 +51,14 @@ async function createAdmin() {
         
         // Create new admin
         db.run(
-          'INSERT INTO User (id, name, phone, passwordHash, role, isVerified, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO User (id, name, phone, passwordHash, role, verified, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
           [
             adminId,
             adminName,
             adminPhone,
             passwordHash,
             'ADMIN',
-            1, // isVerified = true
+            1, // verified = true
             new Date().toISOString(),
             new Date().toISOString()
           ],
@@ -69,8 +69,8 @@ async function createAdmin() {
               console.log('✅ Admin user created successfully!');
               console.log('Admin ID:', adminId);
               console.log('\n🎯 Admin Login Credentials:');
-              console.log('Phone: +919606860853');
-              console.log('Password: Santosh@123');
+              console.log('Phone: +918618808929');
+              console.log('Password: Santosh@1234');
               console.log('URL: http://localhost:5174/admin-login');
             }
             db.close();

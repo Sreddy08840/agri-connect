@@ -37,15 +37,39 @@ const FarmerOrderDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const updateOrderStatus = async (status: string) => {
-    setUpdating(true);
-    try {
-      await api.put(`/orders/${orderId}/status`, { status });
-      Alert.alert('Success', 'Order status updated');
-      fetchOrder();
-    } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to update order status');
-    } finally {
-      setUpdating(false);
+    Alert.alert(
+      'Confirm Status Update',
+      `Are you sure you want to mark this order as ${status}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Confirm',
+          onPress: async () => {
+            setUpdating(true);
+            try {
+              await api.patch(`/orders/${orderId}/status`, { status });
+              Alert.alert('Success', 'Order status updated successfully');
+              fetchOrder();
+            } catch (error: any) {
+              Alert.alert('Error', error.response?.data?.error || 'Failed to update order status');
+            } finally {
+              setUpdating(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'PLACED': return '#F59E0B';
+      case 'ACCEPTED': return '#3B82F6';
+      case 'PACKED': return '#8B5CF6';
+      case 'SHIPPED': return '#06B6D4';
+      case 'DELIVERED': return '#10B981';
+      case 'CANCELLED': return '#EF4444';
+      default: return '#6B7280';
     }
   };
 
@@ -55,17 +79,20 @@ const FarmerOrderDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   return (
     <ScrollView style={styles.container}>
       <Card style={styles.card}>
-        <Text style={styles.orderId}>Order #{order.id.slice(0, 8)}</Text>
+        <Text style={styles.orderId}>Order #{order.orderNumber || order.id.slice(0, 8)}</Text>
         <Text style={styles.date}>{new Date(order.createdAt).toLocaleDateString()}</Text>
-        <View style={[styles.statusBadge, { backgroundColor: '#10B981' }]}>
+        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) }]}>
           <Text style={styles.statusText}>{order.status}</Text>
         </View>
       </Card>
 
       <Card style={styles.card}>
         <Text style={styles.sectionTitle}>Customer Information</Text>
-        <Text style={styles.infoText}>Name: {order.user?.name}</Text>
-        <Text style={styles.infoText}>Phone: {order.user?.phone}</Text>
+        <Text style={styles.infoText}>Name: {order.customer?.name || 'N/A'}</Text>
+        <Text style={styles.infoText}>Phone: {order.customer?.phone || 'N/A'}</Text>
+        {order.customer?.address && (
+          <Text style={styles.infoText}>Address: {order.customer.address}</Text>
+        )}
       </Card>
 
       <Card style={styles.card}>
@@ -85,34 +112,93 @@ const FarmerOrderDetailScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
       </Card>
 
-      {order.deliveryAddress && (
+      {order.addressSnapshot && (
         <Card style={styles.card}>
           <Text style={styles.sectionTitle}>Delivery Address</Text>
-          <Text style={styles.addressText}>{order.deliveryAddress.street}</Text>
-          <Text style={styles.addressText}>
-            {order.deliveryAddress.city}, {order.deliveryAddress.state}
-          </Text>
-          <Text style={styles.addressText}>{order.deliveryAddress.pincode}</Text>
+          <Text style={styles.addressText}>{JSON.parse(order.addressSnapshot).street || order.addressSnapshot}</Text>
         </Card>
       )}
 
-      {order.status === 'PENDING' && (
+      {/* Order Status Actions */}
+      {order.status === 'PLACED' && (
         <Card style={styles.card}>
-          <Text style={styles.sectionTitle}>Update Order Status</Text>
+          <Text style={styles.sectionTitle}>Order Actions</Text>
           <Button
-            title="Confirm Order"
-            onPress={() => updateOrderStatus('CONFIRMED')}
+            title="✓ Accept Order"
+            onPress={() => updateOrderStatus('ACCEPTED')}
             loading={updating}
             fullWidth
             style={styles.button}
           />
           <Button
-            title="Cancel Order"
+            title="✕ Reject Order"
             onPress={() => updateOrderStatus('CANCELLED')}
             loading={updating}
             variant="danger"
             fullWidth
           />
+        </Card>
+      )}
+
+      {order.status === 'ACCEPTED' && (
+        <Card style={styles.card}>
+          <Text style={styles.sectionTitle}>Order Actions</Text>
+          <Button
+            title="📦 Mark as Packed"
+            onPress={() => updateOrderStatus('PACKED')}
+            loading={updating}
+            fullWidth
+            style={styles.button}
+          />
+          <Button
+            title="✕ Cancel Order"
+            onPress={() => updateOrderStatus('CANCELLED')}
+            loading={updating}
+            variant="danger"
+            fullWidth
+          />
+        </Card>
+      )}
+
+      {order.status === 'PACKED' && (
+        <Card style={styles.card}>
+          <Text style={styles.sectionTitle}>Order Actions</Text>
+          <Button
+            title="🚚 Mark as Shipped"
+            onPress={() => updateOrderStatus('SHIPPED')}
+            loading={updating}
+            fullWidth
+            style={styles.button}
+          />
+        </Card>
+      )}
+
+      {order.status === 'SHIPPED' && (
+        <Card style={styles.card}>
+          <Text style={styles.sectionTitle}>Order Actions</Text>
+          <Button
+            title="✓ Mark as Delivered"
+            onPress={() => updateOrderStatus('DELIVERED')}
+            loading={updating}
+            fullWidth
+            style={styles.button}
+          />
+        </Card>
+      )}
+
+      {order.status === 'DELIVERED' && (
+        <Card style={styles.card}>
+          <View style={styles.deliveredBadge}>
+            <Text style={styles.deliveredText}>✓ Order Completed</Text>
+          </View>
+        </Card>
+      )}
+
+      {order.status === 'CANCELLED' && (
+        <Card style={styles.card}>
+          <View style={styles.cancelledBadge}>
+            <Text style={styles.cancelledText}>✕ Order Cancelled</Text>
+          </View>
         </Card>
       )}
     </ScrollView>
@@ -137,6 +223,10 @@ const styles = StyleSheet.create({
   totalAmount: { fontSize: 20, fontWeight: '700', color: '#10B981' },
   addressText: { fontSize: 14, color: '#374151', marginBottom: 4 },
   button: { marginBottom: 12 },
+  deliveredBadge: { padding: 16, backgroundColor: '#D1FAE5', borderRadius: 8, alignItems: 'center' },
+  deliveredText: { fontSize: 16, fontWeight: '600', color: '#059669' },
+  cancelledBadge: { padding: 16, backgroundColor: '#FEE2E2', borderRadius: 8, alignItems: 'center' },
+  cancelledText: { fontSize: 16, fontWeight: '600', color: '#DC2626' },
 });
 
 export default FarmerOrderDetailScreen;

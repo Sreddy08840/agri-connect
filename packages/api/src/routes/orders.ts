@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../config/database';
 import { authenticateToken, requireCustomer, requireFarmer, AuthenticatedRequest } from '../middleware/auth';
 import { io } from '../index';
+import { emailService } from '../services/emailService';
 
 const router: import('express').Router = Router();
 
@@ -65,7 +66,7 @@ router.get('/my', authenticateToken, async (req: AuthenticatedRequest, res) => {
 });
 
 const updateOrderStatusSchema = z.object({
-  status: z.enum(['ACCEPTED', 'REJECTED', 'PACKED', 'SHIPPED', 'DELIVERED', 'CANCELLED']),
+  status: z.enum(['CONFIRMED', 'ACCEPTED', 'REJECTED', 'PACKED', 'SHIPPED', 'DELIVERED', 'CANCELLED']),
   reason: z.string().optional(),
 });
 
@@ -80,7 +81,16 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res) => {
     if (req.user!.role === 'CUSTOMER') {
       where.customerId = req.user!.userId;
     } else if (req.user!.role === 'FARMER') {
-      where.farmerId = req.user!.userId;
+      // Get farmer profile ID for the current user
+      const farmerProfile = await prisma.farmerProfile.findUnique({
+        where: { userId: req.user!.userId }
+      });
+      
+      if (!farmerProfile) {
+        return res.json({ orders: [], pagination: { page: 1, limit: 20, total: 0, pages: 0 } });
+      }
+      
+      where.farmerId = farmerProfile.id; // Use farmer profile ID, not user ID
     }
 
     if (status) {
@@ -261,8 +271,14 @@ router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res) => 
     if (req.user!.role === 'CUSTOMER' && order.customerId !== req.user!.userId) {
       return res.status(403).json({ error: 'Not authorized' });
     }
-    if (req.user!.role === 'FARMER' && order.farmerId !== req.user!.userId) {
-      return res.status(403).json({ error: 'Not authorized' });
+    if (req.user!.role === 'FARMER') {
+      // Get farmer profile for current user
+      const farmerProfile = await prisma.farmerProfile.findUnique({
+        where: { userId: req.user!.userId }
+      });
+      if (!farmerProfile || order.farmerId !== farmerProfile.id) {
+        return res.status(403).json({ error: 'Not authorized to access this order' });
+      }
     }
 
     res.json(order);
@@ -323,8 +339,18 @@ router.post('/', authenticateToken, requireCustomer, async (req: AuthenticatedRe
         return res.status(400).json({ error: `Insufficient stock for ${product.name}` });
       }
 
-      if (!product.farmer.farmerProfile) {
-        return res.status(400).json({ error: `Farmer profile not found for product ${product.name}` });
+      // Get or create farmer profile if it doesn't exist
+      let farmerProfileId = product.farmer.farmerProfile?.id;
+      
+      if (!farmerProfileId) {
+        // Create farmer profile if it doesn't exist
+        const newFarmerProfile = await prisma.farmerProfile.create({
+          data: {
+            userId: product.farmerId,
+            businessName: product.farmer.name ? `${product.farmer.name}'s Farm` : 'Farm',
+          }
+        });
+        farmerProfileId = newFarmerProfile.id;
       }
 
       orderItems.push({
@@ -334,7 +360,7 @@ router.post('/', authenticateToken, requireCustomer, async (req: AuthenticatedRe
       });
 
       totalAmount += product.price * item.qty;
-      farmerIds.add(product.farmer.farmerProfile.id); // Use farmerProfile.id instead of farmer.id
+      farmerIds.add(farmerProfileId); // Use farmerProfile.id
     }
 
     // For simplicity, we'll create one order per farmer
@@ -359,7 +385,7 @@ router.post('/', authenticateToken, requireCustomer, async (req: AuthenticatedRe
         farmerId: farmerId,
         orderNumber: `ORD-${Date.now()}`,
         total: totalAmount,
-        status: 'PLACED',
+        status: 'CONFIRMED',
         paymentMethod: data.paymentMethod,
         addressSnapshot: JSON.stringify(data.address),
         deliverySlot: data.deliverySlot ? JSON.stringify(data.deliverySlot) : null,
@@ -396,15 +422,84 @@ router.post('/', authenticateToken, requireCustomer, async (req: AuthenticatedRe
       items: createdItems,
     };
 
+    // Get customer and farmer details for email
+    const customer = await prisma.user.findUnique({
+      where: { id: req.user!.userId },
+      select: { name: true, email: true }
+    });
+
+    const farmer = await prisma.farmerProfile.findUnique({
+      where: { id: farmerId },
+      include: {
+        user: {
+          select: { name: true, email: true }
+        }
+      }
+    });
+
+    // Send order confirmation emails
+    if (customer && farmer) {
+      // Calculate estimated delivery (3-5 business days from now)
+      const estimatedDelivery = new Date();
+      estimatedDelivery.setDate(estimatedDelivery.getDate() + 4);
+      const estimatedDeliveryStr = estimatedDelivery.toLocaleDateString('en-IN', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+
+      // Format address for email
+      const addressObj = JSON.parse(order.addressSnapshot);
+      const formattedAddress = `${addressObj.street}, ${addressObj.city}, ${addressObj.state} - ${addressObj.pincode}${addressObj.landmark ? ', Near ' + addressObj.landmark : ''}`;
+
+      // Prepare order details for email
+      const orderDetails = {
+        orderNumber: order.orderNumber,
+        customerName: customer.name,
+        customerEmail: customer.email || '',
+        farmerName: farmer.businessName || farmer.user.name,
+        farmerEmail: farmer.user.email || '',
+        items: createdItems.map(item => ({
+          productName: item.product.name,
+          quantity: item.qty,
+          unitPrice: item.unitPrice,
+          unit: 'unit' // You may want to fetch this from product
+        })),
+        totalAmount: order.total,
+        deliveryAddress: formattedAddress,
+        estimatedDelivery: estimatedDeliveryStr,
+        paymentMethod: order.paymentMethod
+      };
+
+      // Send emails asynchronously (don't wait for completion)
+      if (customer.email) {
+        emailService.sendBuyerConfirmation(orderDetails).catch(err => 
+          console.error('Failed to send buyer confirmation email:', err)
+        );
+      }
+
+      if (farmer.user.email) {
+        emailService.sendSellerNotification(orderDetails).catch(err => 
+          console.error('Failed to send seller notification email:', err)
+        );
+      }
+    }
+
     // TODO: Create payment intent if payment method is ONLINE
-    // TODO: Send notifications
     // Note: Cart clearing is handled on the frontend
 
     // Notify interested clients that a new order is created (optional)
     try { io.to(`order.id`).emit('order-update', completeOrder); } catch {}
     res.status(201).json(completeOrder);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Create order error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      name: error.name
+    });
     
     if (error instanceof z.ZodError) {
       const errorDetails = error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
@@ -415,12 +510,20 @@ router.post('/', authenticateToken, requireCustomer, async (req: AuthenticatedRe
     }
     
     // Handle specific database errors
-    if ((error as any)?.code === 'P2002') {
+    if (error.code === 'P2002') {
       return res.status(400).json({ error: 'Duplicate order detected' });
     }
     
-    if ((error as any)?.code === 'P2025') {
+    if (error.code === 'P2025') {
       return res.status(400).json({ error: 'Product not found or unavailable' });
+    }
+    
+    // Return the actual error message for debugging
+    if (error.message) {
+      return res.status(400).json({ 
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
     }
     
     // Generic server error

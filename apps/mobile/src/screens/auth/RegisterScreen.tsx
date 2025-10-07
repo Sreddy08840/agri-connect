@@ -31,7 +31,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     // Validation
     const newErrors: any = {};
     if (!formData.name) newErrors.name = 'Name is required';
-    if (!formData.phone) newErrors.phone = 'Phone is required';
+    if (!formData.phone && !formData.email) newErrors.phone = 'Email or phone is required';
     if (!formData.password) newErrors.password = 'Password is required';
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
@@ -45,25 +45,34 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     setLoading(true);
 
     try {
-      const fullPhone = formData.phone.startsWith('+') ? formData.phone : `+91${formData.phone}`;
       console.log('Step 1: Creating account and sending OTP');
-      const response = await api.post('/auth/register-password', {
+      const payload: any = {
         name: formData.name,
-        phone: fullPhone,
         password: formData.password,
         role: 'CUSTOMER',
-      });
+      };
+      
+      if (formData.email) payload.email = formData.email;
+      if (formData.phone) {
+        const fullPhone = formData.phone.startsWith('+') ? formData.phone : `+91${formData.phone}`;
+        payload.phone = fullPhone;
+      }
+      
+      const response = await api.post('/auth/register-password', payload);
 
       console.log('Account created! OTP sent. Session:', response.data.pendingSessionId);
       
+      const target = formData.email ? formData.email : payload.phone;
       // Navigate to OTP verification
       navigation.navigate('OTPVerification', {
         pendingSessionId: response.data.pendingSessionId,
-        phone: fullPhone,
+        email: formData.email || undefined,
+        phone: payload.phone || undefined,
         isLogin: false,
       });
       
-      Alert.alert('OTP Sent', 'Please enter the 6-digit OTP sent to your phone');
+      const medium = formData.email ? 'email' : 'phone';
+      Alert.alert('OTP Sent', `Please check your ${medium} for the 6-digit OTP code`);
     } catch (error: any) {
       console.error('Registration error details:', error);
       console.error('Error response:', error.response?.data);
@@ -119,14 +128,16 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <Input
-          label="Email (Optional)"
-          placeholder="Enter your email"
+          label="Email Address"
+          placeholder="your.email@example.com"
           value={formData.email}
           onChangeText={(text) => setFormData({ ...formData, email: text })}
           keyboardType="email-address"
           autoCapitalize="none"
           error={errors.email}
         />
+        
+        <Text style={styles.orText}>OR</Text>
 
         <Input
           label="Password"
@@ -232,19 +243,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#374151',
   },
-  phoneInput: {
-    flex: 1,
+  registerButton: {
+    marginBottom: 24,
+  },
+  orText: {
+    textAlign: 'center',
+    color: '#6B7280',
+    fontSize: 14,
+    marginVertical: 8,
   },
   loginText: {
     textAlign: 'center',
     color: '#6B7280',
     fontSize: 14,
+  },
+  loginLink: {
     color: '#10B981',
     fontWeight: '600',
   },
   switchRole: {
     marginTop: 16,
-    padding: 12,
     alignItems: 'center',
   },
   switchRoleText: {

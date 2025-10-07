@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { getProductMainImage } from '../lib/imageUtils';
 
 interface Product {
   id: string;
@@ -7,6 +8,7 @@ interface Product {
   price: number;
   unit: string;
   imageUrl?: string;
+  images?: string[];
   farmerName?: string;
   rating?: number;
 }
@@ -20,7 +22,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) => {
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
       <Image
-        source={{ uri: product.imageUrl || 'https://via.placeholder.com/150' }}
+        source={{ uri: getProductMainImage(product) }}
         style={styles.image}
         resizeMode="cover"
       />

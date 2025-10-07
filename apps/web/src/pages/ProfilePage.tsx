@@ -45,10 +45,19 @@ export default function ProfilePage() {
       } : undefined,
     }),
     {
-      onSuccess: (res) => {
+      onSuccess: async (res) => {
         toast.success('Profile updated');
-        // Refresh /me
-        api.get('/auth/me').then(r => setUser(r.data));
+        // Refresh user data from /auth/me
+        try {
+          const response = await api.get('/auth/me');
+          setUser(response.data);
+        } catch (error) {
+          console.error('Failed to refresh user data:', error);
+          // Don't clear user on refresh failure, just use the update response
+          if (res.data?.user) {
+            setUser({ ...user, ...res.data.user, farmerProfile: res.data.farmerProfile || user?.farmerProfile });
+          }
+        }
       },
       onError: (e: any) => { toast.error(e.response?.data?.error || 'Failed to update profile'); }
     }

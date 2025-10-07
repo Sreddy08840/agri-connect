@@ -9,6 +9,9 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import LoadingScreen from '../../components/ui/LoadingScreen';
 import Input from '../../components/ui/Input';
+import { getFirstImageUrl } from '../../lib/imageUtils';
+import { trackProductView, trackAddToCart } from '../../lib/events';
+import { useAuthStore } from '../../stores/authStore';
 
 type Props = {
   navigation: NativeStackNavigationProp<CustomerStackParamList, 'ProductDetail'>;
@@ -21,6 +24,7 @@ const ProductDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const [quantity, setQuantity] = useState('1');
   const [loading, setLoading] = useState(true);
   const { addItem } = useCartStore();
+  const { user } = useAuthStore();
 
   useEffect(() => {
     fetchProduct();
@@ -30,6 +34,8 @@ const ProductDetailScreen: React.FC<Props> = ({ navigation, route }) => {
     try {
       const response = await api.get(`/products/${productId}`);
       setProduct(response.data);
+      // Track product view
+      trackProductView(productId, user?.id);
     } catch (error) {
       console.error('Failed to fetch product:', error);
       Alert.alert('Error', 'Failed to load product details');
@@ -52,15 +58,31 @@ const ProductDetailScreen: React.FC<Props> = ({ navigation, route }) => {
       price: product.price,
       quantity: qty,
       unit: product.unit,
-      imageUrl: product.images?.[0],
+      imageUrl: getFirstImageUrl(product.images),
       farmerId: product.farmerId,
       farmerName: product.farmer?.businessName || 'Unknown Farmer',
     });
+
+    // Track add to cart event
+    trackAddToCart(
+      product.id,
+      user?.id,
+      product.price * qty,
+      { quantity: qty, unit: product.unit }
+    );
 
     Alert.alert('Success', 'Product added to cart!', [
       { text: 'Continue Shopping', onPress: () => navigation.goBack() },
       { text: 'View Cart', onPress: () => navigation.navigate('CustomerTabs', { screen: 'Cart' }) },
     ]);
+  };
+
+  const handleChatWithFarmer = () => {
+    navigation.navigate('ChatConversation', {
+      chatId: '',
+      farmerId: product.farmerId,
+      productId: product.id,
+    });
   };
 
   if (loading) {
@@ -74,7 +96,7 @@ const ProductDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   return (
     <ScrollView style={styles.container}>
       <Image
-        source={{ uri: product.images?.[0] || 'https://via.placeholder.com/400' }}
+        source={{ uri: getFirstImageUrl(product.images) }}
         style={styles.image}
         resizeMode="cover"
       />
@@ -112,6 +134,17 @@ const ProductDetailScreen: React.FC<Props> = ({ navigation, route }) => {
               <Text style={styles.description}>{product.description}</Text>
             </View>
           )}
+        </Card>
+
+        <Card style={styles.card}>
+          <Text style={styles.sectionTitle}>Contact Farmer</Text>
+          <Button
+            title="💬 Chat with Farmer"
+            onPress={handleChatWithFarmer}
+            fullWidth
+            variant="outline"
+            style={styles.chatButton}
+          />
         </Card>
 
         <Card style={styles.card}>
@@ -227,6 +260,9 @@ const styles = StyleSheet.create({
     color: '#111827',
     marginBottom: 16,
     textAlign: 'center',
+  },
+  chatButton: {
+    marginBottom: 0,
   },
   outOfStock: {
     marginTop: 12,

@@ -13,6 +13,11 @@ import FarmerProfileScreen from '../screens/farmer/ProfileScreen';
 import AddProductScreen from '../screens/farmer/AddProductScreen';
 import EditProductScreen from '../screens/farmer/EditProductScreen';
 import FarmerOrderDetailScreen from '../screens/farmer/OrderDetailScreen';
+import HelpCenterScreen from '../screens/farmer/HelpCenterScreen';
+import FAQScreen from '../screens/farmer/FAQScreen';
+import ContactSupportScreen from '../screens/farmer/ContactSupportScreen';
+import FarmerChatsListScreen from '../screens/farmer/ChatsListScreen';
+import FarmerChatConversationScreen from '../screens/farmer/ChatConversationScreen';
 
 const Tab = createBottomTabNavigator<FarmerTabParamList>();
 const Stack = createNativeStackNavigator<FarmerStackParamList>();
@@ -66,6 +71,14 @@ const FarmerTabs = () => {
         }}
       />
       <Tab.Screen
+        name="Messages"
+        component={FarmerChatsListScreen}
+        options={{
+          tabBarLabel: 'Messages',
+          tabBarIcon: ({ color }) => <TabIcon name="💬" color={color} />,
+        }}
+      />
+      <Tab.Screen
         name="Profile"
         component={FarmerProfileScreen}
         options={{
@@ -106,6 +119,31 @@ const FarmerNavigator = () => {
         name="OrderDetail"
         component={FarmerOrderDetailScreen}
         options={{ title: 'Order Details' }}
+      />
+      <Stack.Screen
+        name="HelpCenter"
+        component={HelpCenterScreen}
+        options={{ title: 'Help Center' }}
+      />
+      <Stack.Screen
+        name="FAQ"
+        component={FAQScreen}
+        options={{ title: 'FAQ' }}
+      />
+      <Stack.Screen
+        name="ContactSupport"
+        component={ContactSupportScreen}
+        options={{ title: 'Contact Support' }}
+      />
+      <Stack.Screen
+        name="ChatsList"
+        component={FarmerChatsListScreen}
+        options={{ title: 'Messages' }}
+      />
+      <Stack.Screen
+        name="ChatConversation"
+        component={FarmerChatConversationScreen}
+        options={{ title: 'Chat' }}
       />
     </Stack.Navigator>
   );

@@ -113,9 +113,22 @@ export default function FarmerProfilePage() {
       }
     }),
     {
-      onSuccess: (res) => {
+      onSuccess: async (res) => {
         toast.success('Profile updated successfully');
-        setUser(res.data);
+        // Refresh user data from /auth/me to get complete user object
+        try {
+          const response = await api.get('/auth/me');
+          setUser(response.data);
+        } catch (error) {
+          console.error('Failed to refresh user data:', error);
+          // Don't clear user on refresh failure, just use the update response
+          if (res.data?.user) {
+            setUser({ ...user, ...res.data.user, farmerProfile: res.data.farmerProfile || user?.farmerProfile });
+          } else if (res.data) {
+            // If the response is the user object directly
+            setUser({ ...user, ...res.data });
+          }
+        }
         setIsEditing(false);
       },
       onError: (e: any) => {

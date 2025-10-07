@@ -25,7 +25,7 @@ const OrdersScreen: React.FC<Props> = ({ navigation }) => {
   const fetchOrders = async () => {
     try {
       const response = await api.get('/orders');
-      setOrders(response.data || []);
+      setOrders(response.data.orders || []);
     } catch (error) {
       console.error('Failed to fetch orders:', error);
     } finally {

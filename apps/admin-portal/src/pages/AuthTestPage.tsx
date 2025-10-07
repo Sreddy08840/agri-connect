@@ -14,8 +14,8 @@ export default function AuthTestPage() {
       // Step 1: Test admin login
       console.log('Step 1: Testing admin login...');
       const loginResponse = await api.post('/auth/login-password', {
-        phone: '+919606860853',
-        password: 'Santosh@123'
+        phone: '+918618808929',
+        password: 'Santosh@1234'
       });
 
       if (loginResponse.data.success && loginResponse.data.pendingSessionId) {

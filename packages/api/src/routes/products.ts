@@ -648,8 +648,18 @@ router.delete('/:id', authenticateToken, requireFarmer, async (req: Authenticate
       return res.status(404).json({ error: 'Product not found' });
     }
 
+    // Check if user owns the product (farmerId is userId for products)
     if (product.farmerId !== req.user!.userId) {
       return res.status(403).json({ error: 'Not authorized to delete this product' });
+    }
+
+    // Delete associated order items first
+    try {
+      await prisma.orderItem.deleteMany({
+        where: { productId: id }
+      });
+    } catch (e) {
+      console.warn('Failed to delete order items:', e);
     }
 
     await prisma.product.delete({
@@ -658,7 +668,13 @@ router.delete('/:id', authenticateToken, requireFarmer, async (req: Authenticate
 
     try { await deleteProductDoc(id) } catch {}
 
-    res.json({ success: true });
+    // Notify via socket
+    try {
+      const io = getIO();
+      io?.to(`farmer:${req.user!.userId}`).emit('product:deleted', { productId: id });
+    } catch {}
+
+    res.json({ success: true, message: 'Product deleted successfully' });
   } catch (error) {
     console.error('Delete product error:', error);
     res.status(500).json({ error: 'Internal server error' });

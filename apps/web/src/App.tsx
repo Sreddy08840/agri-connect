@@ -23,11 +23,21 @@ import FarmerProfilePage from './pages/FarmerProfilePage';
 import OrderConfirmationPage from './pages/OrderConfirmationPage';
 
 // Support Pages
+import HelpPage from './pages/HelpPage';
 import HelpCenterPage from './pages/support/HelpCenterPage';
 import PrivacyPolicyPage from './pages/support/PrivacyPolicyPage';
 import TermsConditionsPage from './pages/support/TermsConditionsPage';
 import FAQPage from './pages/support/FAQPage';
 import ContactSupportPage from './pages/support/ContactSupportPage';
+
+// Chat Pages
+import ChatPage from './pages/ChatPage';
+import MessagesPage from './pages/MessagesPage';
+
+// Warranty Pages
+import WarrantyClaimPage from './pages/WarrantyClaimPage';
+import WarrantyClaimsListPage from './pages/WarrantyClaimsListPage';
+import WarrantyManagementPage from './pages/WarrantyManagementPage';
 
 // Farmer Pages
 import FarmerDashboard from './pages/farmer/DashboardPage';
@@ -125,7 +135,15 @@ function App() {
         <Route path="orders" element={<RequireAuth><OrdersPage /></RequireAuth>} />
         <Route path="orders/:id" element={<RequireAuth><OrderDetailPage /></RequireAuth>} />
         <Route path="profile" element={<RequireAuth><CustomerProfilePage /></RequireAuth>} />
-        {/* Support Pages */}
+        {/* Chat Pages */}
+        <Route path="messages" element={<RequireAuth><MessagesPage /></RequireAuth>} />
+        <Route path="chat/:chatId" element={<RequireAuth><ChatPage /></RequireAuth>} />
+        {/* Warranty Pages */}
+        <Route path="warranty/claim/:orderId" element={<RequireAuth><WarrantyClaimPage /></RequireAuth>} />
+        <Route path="warranty/claims" element={<RequireAuth><WarrantyClaimsListPage /></RequireAuth>} />
+        <Route path="warranty/claims/:claimId" element={<RequireAuth><WarrantyManagementPage /></RequireAuth>} />
+        {/* Help & Support Pages */}
+        <Route path="help" element={<HelpPage />} />
         <Route path="support/help-center" element={<HelpCenterPage />} />
         <Route path="support/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="support/terms-conditions" element={<TermsConditionsPage />} />
@@ -149,6 +167,8 @@ function App() {
         <Route path="products" element={<FarmerProductsPage />} />
         <Route path="orders" element={<FarmerOrdersPage />} />
         <Route path="analytics" element={<FarmerAnalyticsPage />} />
+        <Route path="messages" element={<MessagesPage />} />
+        <Route path="chat/:chatId" element={<ChatPage />} />
         <Route path="profile" element={<FarmerProfilePage />} />
       </Route>
 

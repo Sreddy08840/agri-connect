@@ -13,8 +13,18 @@ const AnalyticsScreen: React.FC = () => {
     try {
       const response = await api.get('/users/farmer/analytics');
       setAnalytics(response.data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch analytics:', error);
+      // Set default analytics on error
+      setAnalytics({
+        totalRevenue: 0,
+        totalOrders: 0,
+        pendingOrders: 0,
+        completedOrders: 0,
+        activeProducts: 0,
+        outOfStockProducts: 0,
+        avgRating: 0
+      });
     } finally {
       setLoading(false);
       setRefreshing(false);

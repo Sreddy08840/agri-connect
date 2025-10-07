@@ -8,6 +8,7 @@ import { api } from '../../lib/api';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
+import { trackPurchase } from '../../lib/events';
 
 type Props = {
   navigation: NativeStackNavigationProp<CustomerStackParamList, 'Checkout'>;
@@ -51,8 +52,7 @@ const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
         }
         ordersByFarmer[item.farmerId].push({
           productId: item.productId,
-          quantity: item.quantity,
-          price: item.price,
+          qty: item.quantity, // Changed from 'quantity' to 'qty' to match API schema
         });
       });
 
@@ -60,12 +60,30 @@ const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
       const orderPromises = Object.entries(ordersByFarmer).map(([farmerId, orderItems]) =>
         api.post('/orders', {
           items: orderItems,
-          deliveryAddress: address,
+          paymentMethod: 'COD', // Added required paymentMethod field
+          address: address, // Changed from 'deliveryAddress' to 'address' to match API schema
         })
       );
 
       const responses = await Promise.all(orderPromises);
       const firstOrderId = responses[0]?.data?.id;
+
+      // Track purchase event
+      trackPurchase(
+        user?.id,
+        total,
+        {
+          orderId: firstOrderId,
+          itemCount: items.length,
+          paymentMethod: 'COD',
+          items: items.map(i => ({
+            productId: i.productId,
+            name: i.name,
+            quantity: i.quantity,
+            price: i.price
+          }))
+        }
+      );
 
       await clearCart();
 

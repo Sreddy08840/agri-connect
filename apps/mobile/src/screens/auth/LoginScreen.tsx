@@ -13,7 +13,7 @@ type Props = {
 };
 
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -21,19 +21,18 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleLogin = async () => {
     
-    if (!phone || !password) {
-      Alert.alert('Error', 'Please enter phone number and password');
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter email and password');
       return;
     }
     
     setLoading(true);
 
     try {
-      const fullPhone = phone.startsWith('+') ? phone : `+91${phone}`;
       console.log('Step 1: Sending login request with password verification');
       
       const response = await api.post('/auth/login-password', {
-        phone: fullPhone,
+        email,
         password,
         role: 'CUSTOMER',
       });
@@ -43,11 +42,11 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       // Navigate to OTP verification screen
       navigation.navigate('OTPVerification', {
         pendingSessionId: response.data.pendingSessionId,
-        phone: fullPhone,
+        email: email,
         isLogin: true,
       });
       
-      Alert.alert('OTP Sent', 'Please enter the 6-digit OTP sent to your phone');
+      Alert.alert('OTP Sent', 'Please check your email for the 6-digit OTP code');
     } catch (error: any) {
       console.error('Login error:', error);
       console.error('Error response:', error.response?.data);
@@ -77,19 +76,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       </View>
 
       <View style={styles.form}>
-        <Text style={styles.inputLabel}>Phone Number</Text>
-        <View style={styles.phoneContainer}>
-          <View style={styles.countryCode}>
-            <Text style={styles.countryCodeText}>+91 🇮🇳</Text>
-          </View>
-          <Input
-            placeholder="Enter phone number"
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-            style={styles.phoneInput}
-          />
-        </View>
+        <Input
+          label="Email Address"
+          placeholder="your.email@example.com"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
 
         <Input
           label="Password"
@@ -107,7 +101,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           title="Login"
           onPress={handleLogin}
           loading={loading}
-          disabled={!phone || !password}
+          disabled={!email || !password}
           fullWidth
           style={styles.loginButton}
         />
@@ -169,34 +163,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  phoneContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  countryCode: {
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 16,
-    marginRight: 8,
-    justifyContent: 'center',
-  },
-  countryCodeText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  phoneInput: {
-    flex: 1,
   },
   forgotPassword: {
     color: '#10B981',

@@ -5,7 +5,7 @@ export default function TestUsersPage() {
   const [testData] = useState([
     { id: '1', name: 'John Farmer', phone: '+919876543210', role: 'FARMER', verified: true },
     { id: '2', name: 'Jane Customer', phone: '+919876543211', role: 'CUSTOMER', verified: false },
-    { id: '3', name: 'Admin User', phone: '+919606860853', role: 'ADMIN', verified: true },
+    { id: '3', name: 'Admin User', phone: '+918618808929', role: 'ADMIN', verified: true },
   ]);
 
   return (

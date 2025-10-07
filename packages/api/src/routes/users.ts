@@ -11,12 +11,12 @@ const router: import('express').Router = Router();
 
 const updateSchema = z.object({
   name: z.string().min(2).max(100).optional(),
-  email: z.string().email().optional(),
-  address: z.string().optional(),
+  email: z.union([z.string().email(), z.literal('')]).optional().transform(val => val === '' ? undefined : val),
+  address: z.string().optional().transform(val => val === '' ? undefined : val),
   farmerProfile: z.object({
-    businessName: z.string().min(2).max(200).optional(),
-    description: z.string().optional(),
-    address: z.string().optional(),
+    businessName: z.string().min(2).max(200).optional().or(z.literal('')).transform(val => val === '' ? undefined : val),
+    description: z.string().optional().transform(val => val === '' ? undefined : val),
+    address: z.string().optional().transform(val => val === '' ? undefined : val),
   }).optional(),
 });
 
@@ -34,7 +34,7 @@ const twoFactorSchema = z.object({
 });
 
 const forgotPasswordSchema = z.object({
-  phone: z.string().min(1, 'Phone number is required'),
+  identifier: z.string().min(1, 'Email or phone number is required'),
 });
 
 const resetPasswordSchema = z.object({
@@ -136,6 +136,7 @@ async function logAuditEvent(adminId: string, action: string, before: any = null
 // Update current user and farmer profile (if role is FARMER)
 router.patch('/me', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
+    console.log('Profile update request body:', JSON.stringify(req.body, null, 2));
     const data = updateSchema.parse(req.body);
     const userId = req.user!.userId;
 
@@ -177,7 +178,11 @@ router.patch('/me', authenticateToken, async (req: AuthenticatedRequest, res) =>
     res.json({ success: true, user: { ...user }, farmerProfile });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid data' });
+      console.error('Validation error:', error.errors);
+      return res.status(400).json({ 
+        error: 'Invalid data',
+        details: error.errors.map(e => ({ field: e.path.join('.'), message: e.message }))
+      });
     }
     console.error('Update user error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -532,21 +537,31 @@ router.get('/me/2fa/status', authenticateToken, async (req: AuthenticatedRequest
 // Forgot password - Send reset link
 router.post('/forgot-password', async (req, res) => {
   try {
-    const { phone } = forgotPasswordSchema.parse(req.body);
+    const { identifier } = forgotPasswordSchema.parse(req.body);
     
-    const user = await prisma.user.findUnique({ where: { phone } });
+    // Check if identifier is email or phone
+    const isEmail = identifier.includes('@');
+    
+    const user = await prisma.user.findFirst({ 
+      where: isEmail 
+        ? { email: identifier } 
+        : { phone: identifier }
+    });
     
     if (!user) {
       // Don't reveal if user exists or not for security
       return res.json({ 
         success: true, 
-        message: 'If an account with this phone number exists, a password reset link has been sent.' 
+        message: 'If an account exists, a password reset link has been sent.' 
       });
     }
 
     // Generate reset token
     const token = crypto.randomBytes(32).toString('hex');
     const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    
+    // Generate a 6-digit OTP for easier development testing
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     // Update user with reset token
     await prisma.user.update({
@@ -561,13 +576,22 @@ router.post('/forgot-password', async (req, res) => {
     // For now, we'll just log it for testing
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5174'}/reset-password?token=${token}`;
     
-    console.log(`Password reset URL for ${user.phone}: ${resetUrl}`);
+    console.log('='.repeat(60));
+    console.log(`🔐 PASSWORD RESET REQUEST`);
+    console.log(`📧 User: ${user.email || user.phone}`);
+    console.log(`🔑 Reset Token: ${token}`);
+    console.log(`🔢 OTP Code (for UI): ${otp}`);
+    console.log(`🔗 Reset URL: ${resetUrl}`);
+    console.log(`⏰ Expires: ${expires.toLocaleString()}`);
+    console.log('='.repeat(60));
 
     res.json({ 
       success: true, 
-      message: 'If an account with this phone number exists, a password reset link has been sent.',
+      message: 'If an account exists, a password reset link has been sent.',
       // Remove this in production - only for testing
-      resetUrl: process.env.NODE_ENV === 'development' ? resetUrl : undefined
+      resetUrl: process.env.NODE_ENV === 'development' ? resetUrl : undefined,
+      otp: process.env.NODE_ENV === 'development' ? otp : undefined,
+      token: process.env.NODE_ENV === 'development' ? token : undefined
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -863,6 +887,187 @@ router.get('/audit-logs', authenticateToken, requireAdmin, async (req, res) => {
     });
   } catch (error) {
     console.error('Admin audit logs error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get farmer dashboard stats
+router.get('/farmer/stats', authenticateToken, async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.user!.userId;
+    
+    // Get or create farmer profile
+    let farmerProfile = await prisma.farmerProfile.findUnique({
+      where: { userId }
+    });
+
+    if (!farmerProfile) {
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      try {
+        farmerProfile = await prisma.farmerProfile.create({
+          data: {
+            userId,
+            businessName: user.name ? `${user.name}'s Farm` : 'My Farm',
+          }
+        });
+      } catch (createError: any) {
+        // If profile creation fails, return default stats
+        console.error('Failed to create farmer profile:', createError);
+        return res.json({
+          totalRevenue: 0,
+          totalOrders: 0,
+          activeProducts: 0,
+          avgRating: 0,
+          recentOrders: []
+        });
+      }
+    }
+
+    // Get total revenue from delivered orders
+    const orders = await prisma.order.findMany({
+      where: { farmerId: farmerProfile.id },
+      select: {
+        id: true,
+        total: true,
+        status: true,
+        createdAt: true,
+      }
+    });
+
+    const totalRevenue = orders
+      .filter(order => order.status === 'DELIVERED')
+      .reduce((sum, order) => sum + Number(order.total), 0);
+
+    const totalOrders = orders.length;
+
+    // Get active products count
+    const activeProducts = await prisma.product.count({
+      where: { 
+        farmerId: userId,
+        status: 'APPROVED'
+      }
+    });
+
+    // Get recent orders (last 5)
+    const recentOrders = orders
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 5)
+      .map(order => ({
+        id: order.id,
+        total: Number(order.total),
+        status: order.status,
+        createdAt: order.createdAt
+      }));
+
+    // Calculate average rating (placeholder - implement when reviews are added)
+    const avgRating = 4.5; // TODO: Calculate from actual reviews
+
+    res.json({
+      totalRevenue,
+      totalOrders,
+      activeProducts,
+      avgRating,
+      recentOrders
+    });
+  } catch (error) {
+    console.error('Farmer stats error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get farmer analytics (detailed)
+router.get('/farmer/analytics', authenticateToken, async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.user!.userId;
+    
+    // Get or create farmer profile
+    let farmerProfile = await prisma.farmerProfile.findUnique({
+      where: { userId }
+    });
+
+    // Create default profile if doesn't exist
+    if (!farmerProfile) {
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      try {
+        farmerProfile = await prisma.farmerProfile.create({
+          data: {
+            userId,
+            businessName: user.name ? `${user.name}'s Farm` : 'My Farm',
+          }
+        });
+      } catch (createError: any) {
+        // If profile creation fails, return default stats
+        console.error('Failed to create farmer profile:', createError);
+        return res.json({
+          totalRevenue: 0,
+          totalOrders: 0,
+          pendingOrders: 0,
+          completedOrders: 0,
+          activeProducts: 0,
+          outOfStockProducts: 0,
+          avgRating: 0
+        });
+      }
+    }
+
+    // Get orders
+    const orders = await prisma.order.findMany({
+      where: { farmerId: farmerProfile.id },
+      select: {
+        id: true,
+        total: true,
+        status: true,
+        createdAt: true,
+      }
+    });
+
+    const totalRevenue = orders
+      .filter(order => order.status === 'DELIVERED')
+      .reduce((sum, order) => sum + Number(order.total), 0);
+
+    const totalOrders = orders.length;
+    const pendingOrders = orders.filter(o => ['PLACED', 'ACCEPTED'].includes(o.status)).length;
+    const completedOrders = orders.filter(o => o.status === 'DELIVERED').length;
+
+    // Get products stats
+    const [activeProducts, outOfStockProducts] = await Promise.all([
+      prisma.product.count({
+        where: { 
+          farmerId: userId,
+          status: 'APPROVED',
+          stockQty: { gt: 0 }
+        }
+      }),
+      prisma.product.count({
+        where: { 
+          farmerId: userId,
+          stockQty: 0
+        }
+      })
+    ]);
+
+    // Calculate average rating
+    const avgRating = farmerProfile.ratingAvg || 0;
+
+    res.json({
+      totalRevenue,
+      totalOrders,
+      pendingOrders,
+      completedOrders,
+      activeProducts,
+      outOfStockProducts,
+      avgRating
+    });
+  } catch (error) {
+    console.error('Farmer analytics error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

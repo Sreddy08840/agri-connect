@@ -14,7 +14,7 @@ model User {
   id            String   @id @default(cuid())
   phone         String   @unique
   name          String
-  email         String?
+  email         String?  @unique // Made unique for email-based authentication
   avatarUrl     String?
   googleId      String?  @unique // Added for Google OAuth
   address       String?  // Changed from Json to String
@@ -33,12 +33,20 @@ model User {
   passwordResetExpires DateTime?
 
   // Relations
-  farmerProfile FarmerProfile?
-  cart          Cart?
-  orders        Order[]
-  messages      Message[]
-  auditLogs     AdminAuditLog[]
-  products      Product[]
+  farmerProfile    FarmerProfile?
+  cart             Cart?
+  orders           Order[]
+  messages         Message[]
+  auditLogs        AdminAuditLog[]
+  products         Product[]
+  customerChats    DirectChat[]    @relation("CustomerChats")
+  farmerChats      DirectChat[]    @relation("FarmerChats")
+  sentMessages     DirectMessage[] @relation("SentMessages")
+  events           Event[]
+  purchases        Purchase[]
+  warrantyClaims   WarrantyClaim[] @relation("CustomerWarranties")
+  resolvedWarranties WarrantyClaim[] @relation("ResolvedWarranties")
+  productReviews   ProductReview[]
 
   @@map("users")
 }
@@ -92,19 +100,28 @@ model Product {
   unit          String
   minOrderQty   Int      @default(1)
   stockQty      Int      @default(0)
+  stock         Int      @default(0)
+  embedding     String?  // JSON string for vector embeddings
   images        String?  // JSON string of image URLs array
   status        String   @default("DRAFT") // Changed from enum to String
   featured      Boolean  @default(false)
   categoryId    String
   farmerId      String
+  ratingAvg     Float    @default(0)
+  ratingCount   Int      @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   // Relations
-  category      Category   @relation(fields: [categoryId], references: [id])
-  farmer        User       @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  category      Category     @relation(fields: [categoryId], references: [id])
+  farmer        User         @relation(fields: [farmerId], references: [id], onDelete: Cascade)
   cartItems     CartItem[]
   orderItems    OrderItem[]
+  directChats   DirectChat[]
+  events        Event[]
+  purchases     Purchase[]
+  inventoryAlerts InventoryAlert[]
+  reviews       ProductReview[]
 
   @@map("products")
 }
@@ -158,6 +175,7 @@ model Order {
   items           OrderItem[]
   payment         Payment?
   messages        Message[]
+  warrantyClaims  WarrantyClaim[]
 
   @@map("orders")
 }
@@ -249,4 +267,123 @@ model AdminAuditLog {
   admin     User     @relation(fields: [adminId], references: [id])
 
   @@map("admin_audit_logs")
+}
+
+model DirectChat {
+  id         String   @id @default(cuid())
+  customerId String
+  farmerId   String
+  productId  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  customer   User            @relation("CustomerChats", fields: [customerId], references: [id])
+  farmer     User            @relation("FarmerChats", fields: [farmerId], references: [id])
+  product    Product?        @relation(fields: [productId], references: [id])
+  messages   DirectMessage[]
+
+  @@unique([customerId, farmerId])
+  @@map("direct_chats")
+}
+
+model DirectMessage {
+  id        String   @id @default(cuid())
+  chatId    String
+  senderId  String
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // Relations
+  chat      DirectChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender    User       @relation("SentMessages", fields: [senderId], references: [id])
+
+  @@map("direct_messages")
+}
+
+model Event {
+  id        String   @id @default(cuid())
+  userId    String?
+  productId String?
+  type      String   // "view","add_to_cart","purchase","rating","favorite"
+  value     Float?   // e.g., rating score
+  createdAt DateTime @default(now())
+  meta      String?  // JSON string for additional metadata
+
+  // Relations
+  User      User?    @relation(fields: [userId], references: [id])
+  Product   Product? @relation(fields: [productId], references: [id])
+
+  @@map("events")
+}
+
+model Purchase {
+  id          String   @id @default(cuid())
+  userId      String
+  productId   String
+  quantity    Int
+  totalAmount Float
+  createdAt   DateTime @default(now())
+
+  // Relations
+  User        User     @relation(fields: [userId], references: [id])
+  Product     Product  @relation(fields: [productId], references: [id])
+
+  @@map("purchases")
+}
+
+model InventoryAlert {
+  id        String   @id @default(cuid())
+  productId String
+  level     Int
+  message   String
+  createdAt DateTime @default(now())
+  read      Boolean  @default(false)
+
+  // Relations
+  Product   Product  @relation(fields: [productId], references: [id])
+
+  @@map("inventory_alerts")
+}
+
+model WarrantyClaim {
+  id               String   @id @default(cuid())
+  orderId          String
+  customerId       String
+  issueDescription String
+  photos           String?  // JSON string of photo URLs
+  requestDate      DateTime @default(now())
+  status           String   @default("PENDING") // PENDING, IN_REVIEW, RESOLVED, REJECTED
+  resolutionNotes  String?
+  resolvedBy       String?
+  resolvedAt       DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  order            Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customer         User     @relation("CustomerWarranties", fields: [customerId], references: [id])
+  resolver         User?    @relation("ResolvedWarranties", fields: [resolvedBy], references: [id])
+
+  @@map("warranty_claims")
+}
+
+model ProductReview {
+  id          String   @id @default(cuid())
+  productId   String
+  userId      String
+  orderId     String?  // Optional: link to order to verify purchase
+  rating      Int      // 1-5 stars
+  comment     String?
+  images      String?  // JSON string of image URLs
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, userId]) // One review per user per product
+  @@map("product_reviews")
 }

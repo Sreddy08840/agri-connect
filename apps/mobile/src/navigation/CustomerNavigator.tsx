@@ -14,6 +14,8 @@ import ProductDetailScreen from '../screens/customer/ProductDetailScreen';
 import CheckoutScreen from '../screens/customer/CheckoutScreen';
 import OrderDetailScreen from '../screens/customer/OrderDetailScreen';
 import OrderConfirmationScreen from '../screens/customer/OrderConfirmationScreen';
+import ChatsListScreen from '../screens/customer/ChatsListScreen';
+import ChatConversationScreen from '../screens/customer/ChatConversationScreen';
 
 // Support Screens
 import HelpCenterScreen from '../screens/support/HelpCenterScreen';
@@ -71,6 +73,14 @@ const CustomerTabs = () => {
         options={{
           tabBarLabel: 'Orders',
           tabBarIcon: ({ color }) => <TabIcon name="📦" color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Messages"
+        component={ChatsListScreen}
+        options={{
+          tabBarLabel: 'Messages',
+          tabBarIcon: ({ color }) => <TabIcon name="💬" color={color} />,
         }}
       />
       <Tab.Screen
@@ -144,6 +154,16 @@ const CustomerNavigator = () => {
         name="ContactSupport"
         component={ContactSupportScreen}
         options={{ title: 'Contact Support' }}
+      />
+      <Stack.Screen
+        name="ChatsList"
+        component={ChatsListScreen}
+        options={{ title: 'Messages' }}
+      />
+      <Stack.Screen
+        name="ChatConversation"
+        component={ChatConversationScreen}
+        options={{ title: 'Chat' }}
       />
     </Stack.Navigator>
   );

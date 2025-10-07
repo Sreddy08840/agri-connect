@@ -16,10 +16,11 @@ interface OrderItem {
 interface OrderDetail {
   id: string;
   status: string;
-  totalAmount: number;
+  total: number;
+  totalAmount?: number;
   createdAt: string;
   items: OrderItem[];
-  farmer: { id?: string; name: string; farmerProfile?: { businessName: string } };
+  farmer: { id?: string; businessName?: string; user?: { name: string; phone: string } };
   shippingAddress?: any;
 }
 
@@ -118,16 +119,16 @@ export default function OrderDetailPage() {
               <span className="capitalize text-sm text-gray-700">{(currentOrder || order)!.status}</span>
             </div>
             <p className="mt-2 text-sm text-gray-600">
-              Ordered on {new Date((currentOrder || order)!.createdAt).toLocaleString()} from {(currentOrder || order)!.farmer.farmerProfile?.businessName || (currentOrder || order)!.farmer.name}
+              Ordered on {new Date((currentOrder || order)!.createdAt).toLocaleString()} from {(currentOrder || order)!.farmer.businessName || (currentOrder || order)!.farmer.user?.name || 'Farmer'}
             </p>
-            <p className="mt-2 text-lg font-bold text-gray-900">Total: ₹{(currentOrder || order)!.totalAmount.toFixed(2)}</p>
+            <p className="mt-2 text-lg font-bold text-gray-900">Total: ₹{((currentOrder || order)!.total || (currentOrder || order)!.totalAmount || 0).toFixed(2)}</p>
 
             {/* Rate Farmer for delivered orders */}
-            {(currentOrder || order)!.status.toLowerCase() === 'delivered' && (
+            {(currentOrder || order)!.status.toLowerCase() === 'delivered' && (currentOrder || order)!.farmer.id && (
               <div className="mt-4">
                 <RatingDialog
                   farmerId={(currentOrder || order)!.farmer.id}
-                  farmerName={(currentOrder || order)!.farmer.farmerProfile?.businessName || (currentOrder || order)!.farmer.name}
+                  farmerName={(currentOrder || order)!.farmer.businessName || (currentOrder || order)!.farmer.user?.name || 'Farmer'}
                   triggerClassName="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg font-semibold"
                   triggerLabel="Rate Farmer"
                 />

@@ -35,13 +35,12 @@
   },
   "packageManager": "pnpm@8.15.0",
   "dependencies": {
-    "@react-navigation/bottom-tabs": "^6.5.11",
-    "@react-navigation/native": "^6.1.9",
-    "@react-navigation/stack": "^6.3.20",
     "tsx": "^4.20.5"
   },
   "pnpm": {
     "overrides": {
+      "react": "18.2.0",
+      "react-native": "0.73.0",
       "metro": "0.80.9",
       "metro-cache": "0.80.9",
       "metro-config": "0.80.9",

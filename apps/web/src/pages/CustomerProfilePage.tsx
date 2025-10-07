@@ -65,9 +65,22 @@ export default function CustomerProfilePage() {
   const updateProfileMutation = useMutation(
     (data: ProfileFormData) => api.patch('/users/me', data),
     {
-      onSuccess: (res) => {
+      onSuccess: async (res) => {
         toast.success('Profile updated successfully');
-        setUser(res.data);
+        // Refresh user data from /auth/me to get complete user object
+        try {
+          const response = await api.get('/auth/me');
+          setUser(response.data);
+        } catch (error) {
+          console.error('Failed to refresh user data:', error);
+          // Don't clear user on refresh failure, just use the update response
+          if (res.data?.user) {
+            setUser({ ...user, ...res.data.user });
+          } else if (res.data) {
+            // If the response is the user object directly
+            setUser({ ...user, ...res.data });
+          }
+        }
         setIsEditing(false);
       },
       onError: (e: any) => {
@@ -227,14 +240,18 @@ export default function CustomerProfilePage() {
               <Phone className="h-5 w-5 text-gray-400" />
               <div>
                 <div className="text-sm text-gray-500">Phone Number</div>
-                <div className="font-medium">{user?.phone || 'Not provided'}</div>
+                <div className="font-medium">{user?.phone || user?.email || 'Not provided'}</div>
               </div>
             </div>
             <div className="flex items-start space-x-3">
               <MapPin className="h-5 w-5 text-gray-400 mt-1" />
               <div>
                 <div className="text-sm text-gray-500">Delivery Address</div>
-                <div className="font-medium">{user?.address || 'Not provided'}</div>
+                <div className="font-medium">
+                  {typeof user?.address === 'string' ? user.address : 
+                   typeof user?.address === 'object' && user.address !== null ? JSON.stringify(user.address) : 
+                   'Not provided'}
+                </div>
               </div>
             </div>
           </div>

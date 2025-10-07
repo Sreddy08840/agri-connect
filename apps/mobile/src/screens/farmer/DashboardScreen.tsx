@@ -11,10 +11,20 @@ const DashboardScreen: React.FC = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await api.get('/users/farmer/stats');
+      const response = await api.get('/users/farmer/analytics');
       setStats(response.data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch stats:', error);
+      // Set default stats on error
+      setStats({
+        totalRevenue: 0,
+        totalOrders: 0,
+        pendingOrders: 0,
+        completedOrders: 0,
+        activeProducts: 0,
+        outOfStockProducts: 0,
+        avgRating: 0
+      });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -64,11 +74,11 @@ const DashboardScreen: React.FC = () => {
 };
 
 const StatCard = ({ title, value, icon, color }: any) => (
-  <Card style={[styles.statCard, { borderLeftColor: color }]}>
+  <View style={[styles.statCard, { borderLeftColor: color }]}>
     <Text style={styles.statIcon}>{icon}</Text>
     <Text style={styles.statValue}>{value}</Text>
     <Text style={styles.statTitle}>{title}</Text>
-  </Card>
+  </View>
 );
 
 const styles = StyleSheet.create({
@@ -77,7 +87,18 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: '700', color: '#FFFFFF', marginBottom: 4 },
   subtitle: { fontSize: 14, color: '#FFFFFF', opacity: 0.9 },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', padding: 16, gap: 12 },
-  statCard: { width: '48%', padding: 16, borderLeftWidth: 4 },
+  statCard: { 
+    width: '48%', 
+    padding: 16, 
+    borderLeftWidth: 4,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
   statIcon: { fontSize: 32, marginBottom: 8 },
   statValue: { fontSize: 24, fontWeight: '700', color: '#111827', marginBottom: 4 },
   statTitle: { fontSize: 12, color: '#6B7280' },

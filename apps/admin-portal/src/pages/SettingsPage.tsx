@@ -25,7 +25,7 @@ export default function SettingsPage() {
       siteName: 'Agri-Connect',
       siteDescription: 'Connect farmers directly with customers',
       supportEmail: 'support@agri-connect.com',
-      supportPhone: '+91-9606860853',
+      supportPhone: '+91-8618808929',
       maintenanceMode: false,
     },
     notifications: {

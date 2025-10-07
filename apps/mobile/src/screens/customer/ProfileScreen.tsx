@@ -9,6 +9,7 @@ import { api } from '../../lib/api';
 import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
+import ProfilePhotoUpload from '../../components/ProfilePhotoUpload';
 
 type NavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<CustomerTabParamList, 'Profile'>,
@@ -32,12 +33,26 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   const handleSave = async () => {
     setLoading(true);
     try {
-      const response = await api.put('/users/profile', formData);
-      setUser(response.data);
+      const updateData: any = {
+        name: formData.name,
+      };
+      
+      // Only include email if it's not empty
+      if (formData.email && formData.email.trim()) {
+        updateData.email = formData.email.trim();
+      }
+      
+      const response = await api.patch('/users/me', updateData);
+      
+      if (response.data.user) {
+        setUser({ ...user!, ...response.data.user });
+      }
+      
       setEditing(false);
       Alert.alert('Success', 'Profile updated successfully');
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to update profile');
+      console.error('Update profile error:', error);
+      Alert.alert('Error', error.response?.data?.error || 'Failed to update profile');
     } finally {
       setLoading(false);
     }
@@ -53,9 +68,10 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{user?.name?.charAt(0) || '👤'}</Text>
-        </View>
+        <ProfilePhotoUpload 
+          currentAvatarUrl={user?.avatarUrl}
+          size="large"
+        />
         <Text style={styles.name}>{user?.name}</Text>
         <Text style={styles.role}>Customer</Text>
       </View>
@@ -120,9 +136,7 @@ const MenuItem = ({ title, onPress }: { title: string; onPress: () => void }) =>
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FAFB' },
   header: { backgroundColor: '#10B981', padding: 32, paddingTop: 48, alignItems: 'center' },
-  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
-  avatarText: { fontSize: 32, fontWeight: '700', color: '#10B981' },
-  name: { fontSize: 24, fontWeight: '700', color: '#FFFFFF', marginBottom: 4 },
+  name: { fontSize: 24, fontWeight: '700', color: '#FFFFFF', marginBottom: 4, marginTop: 16 },
   role: { fontSize: 14, color: '#FFFFFF', opacity: 0.9 },
   card: { margin: 16, marginBottom: 8 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },

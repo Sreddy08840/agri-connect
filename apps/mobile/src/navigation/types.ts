@@ -22,6 +22,7 @@ export type CustomerTabParamList = {
   Products: undefined;
   Cart: undefined;
   Orders: undefined;
+  Messages: undefined;
   Profile: undefined;
 };
 
@@ -37,6 +38,8 @@ export type CustomerStackParamList = {
   PrivacyPolicy: undefined;
   TermsConditions: undefined;
   ContactSupport: undefined;
+  ChatsList: undefined;
+  ChatConversation: { chatId: string; farmerId?: string; productId?: string };
 };
 
 export type FarmerTabParamList = {
@@ -44,6 +47,7 @@ export type FarmerTabParamList = {
   Products: undefined;
   Orders: undefined;
   Analytics: undefined;
+  Messages: undefined;
   Profile: undefined;
 };
 
@@ -53,4 +57,9 @@ export type FarmerStackParamList = {
   EditProduct: { productId: string };
   OrderDetail: { orderId: string };
   EditProfile: undefined;
+  HelpCenter: undefined;
+  FAQ: undefined;
+  ContactSupport: undefined;
+  ChatsList: undefined;
+  ChatConversation: { chatId: string };
 };

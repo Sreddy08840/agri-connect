@@ -7,6 +7,7 @@ import { CustomerStackParamList, CustomerTabParamList } from '../../navigation/t
 import { useCartStore } from '../../stores/cartStore';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import { getImageUrl } from '../../lib/imageUtils';
 
 type NavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<CustomerTabParamList, 'Cart'>,
@@ -55,7 +56,7 @@ const CartScreen: React.FC<Props> = ({ navigation }) => {
         renderItem={({ item }) => (
           <Card style={styles.cartItem}>
             <Image
-              source={{ uri: item.imageUrl || 'https://via.placeholder.com/100' }}
+              source={{ uri: getImageUrl(item.imageUrl) }}
               style={styles.image}
             />
             <View style={styles.itemDetails}>

@@ -27,7 +27,8 @@ A comprehensive marketplace platform that directly connects farmers and consumer
 
 - **Frontend**: React (Web) + React Native (Mobile)
 - **Backend**: Node.js + Express + TypeScript
-- **Database**: PostgreSQL + Prisma ORM
+- **Database**: SQLite (dev) / PostgreSQL (prod) + Prisma ORM
+- **ML Service**: Python + FastAPI + scikit-learn for recommendations
 - **Cache**: Redis for sessions and rate limiting
 - **Storage**: S3-compatible storage for images
 - **Real-time**: Socket.IO for chat and notifications
@@ -40,9 +41,11 @@ A comprehensive marketplace platform that directly connects farmers and consumer
 agri-connect/
 ├── apps/
 │   ├── web/                 # React web application
-│   └── mobile/              # React Native mobile app
+│   ├── mobile/              # React Native mobile app
+│   └── admin-portal/        # Admin dashboard
 ├── packages/
 │   ├── api/                 # Node.js API server
+│   ├── ml/                  # Python ML recommendation service
 │   ├── ui/                  # Shared UI components
 │   └── config/              # Shared configuration
 ├── docker-compose.yml       # Local development setup
@@ -54,8 +57,9 @@ agri-connect/
 ### Prerequisites
 - Node.js 18+
 - pnpm 8+
-- PostgreSQL 15+
-- Redis 7+
+- Python 3.11+ (for ML service)
+- SQLite (included) / PostgreSQL 15+ (optional)
+- Redis 7+ (optional)
 
 ### Quick Start
 
@@ -97,6 +101,33 @@ This will start:
 - Web app on http://localhost:5173
 - Mobile app (via Expo) on your device
 
+### ML Recommendation Service
+
+The ML service provides content-based product recommendations:
+
+```bash
+# Install Python dependencies
+cd packages/ml
+pip install -r requirements.txt
+
+# Start the ML service
+python -m uvicorn main:app --reload --port 8000
+
+# Or use npm script
+npm run dev
+```
+
+The service will be available at http://localhost:8000
+
+**Features:**
+- Content-based filtering using TF-IDF and cosine similarity
+- Automatic product index on startup
+- Fallback to newest products if no viewing history
+- `/recommendations?userId=1&n=10` - Get recommendations
+- `/refresh` - Reload product data
+
+See `packages/ml/QUICKSTART.md` for detailed documentation.
+
 ### Individual Service Commands
 
 ```bash
@@ -111,6 +142,10 @@ pnpm dev
 # Mobile only
 cd apps/mobile
 pnpm start
+
+# ML service only
+cd packages/ml
+python -m uvicorn main:app --reload
 ```
 
 ## 🧪 Testing
@@ -269,7 +304,7 @@ For support and questions:
 ## 🗺️ Roadmap
 
 - [ ] Advanced search and filtering
-- [ ] Machine learning recommendations
+- [x] Machine learning recommendations
 - [ ] Multi-language support
 - [ ] Advanced analytics
 - [ ] Mobile app store deployment
