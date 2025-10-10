@@ -97,7 +97,10 @@ export default function ChatPage() {
   useEffect(() => {
     if (!chatId || !user) return;
 
-    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:8080', {
+    // Use VITE_SOCKET_URL if available, otherwise extract base URL from VITE_API_URL
+    const socketUrl = import.meta.env.VITE_SOCKET_URL || 
+                      (import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8080');
+    const socket = io(socketUrl, {
       transports: ['websocket', 'polling'],
     });
 
@@ -161,7 +164,7 @@ export default function ChatPage() {
 
     try {
       setIsSending(true);
-      const response = await api.post(`/chat/direct/${chatId}/messages`, {
+      await api.post(`/chat/direct/${chatId}/messages`, {
         body: newMessage.trim(),
       });
 

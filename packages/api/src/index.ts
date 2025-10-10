@@ -7,6 +7,7 @@ import path from 'path';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { apiRateLimit } from './middleware/rateLimit-simple';
+import { PrismaClient } from '@prisma/client';
 
 // Routes
 import authRoutes from './routes/auth';
@@ -27,6 +28,7 @@ import reviewsRoutes from './routes/reviews';
 
 const app = express();
 const server = createServer(app);
+const prisma = new PrismaClient();
 const io = new Server(server, {
   cors: {
     origin: [
@@ -36,10 +38,17 @@ const io = new Server(server, {
       /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:\d+$/,  // Allow any local network IP for mobile
     ],
     methods: ['GET', 'POST'],
+    credentials: true,
   },
+  path: '/socket.io/',
+  transports: ['websocket', 'polling'],
+  allowEIO3: true,
 });
 
 const PORT = process.env.PORT || 8080;
+
+// Store active support chats in memory (in production, use Redis)
+const activeSupportChats = new Map();
 
 // Middleware
 app.use(helmet({
@@ -166,8 +175,209 @@ io.on('connection', (socket) => {
     console.log(`Socket ${socket.id} left admin room`);
   });
 
+  // ============ LIVE SUPPORT CHAT HANDLERS ============
+
+  // User joins support chat
+  socket.on('join-support-chat', async (data: { userId: string; userName: string; userRole: string }) => {
+    const chatRoomId = `support-${data.userId}`;
+    socket.join(chatRoomId);
+    socket.join('support-users'); // Join general support users room
+    
+    // Store user info
+    activeSupportChats.set(data.userId, {
+      userId: data.userId,
+      userName: data.userName,
+      userRole: data.userRole,
+      socketId: socket.id,
+      isActive: true,
+      lastMessage: null,
+      unreadCount: 0,
+    });
+
+    console.log(`User ${data.userName} (${data.userId}) joined support chat`);
+
+    // Notify admins of new user
+    io.to('admin-support').emit('support:user-joined', {
+      userId: data.userId,
+      userName: data.userName,
+      userRole: data.userRole,
+      isActive: true,
+      unreadCount: 0,
+    });
+
+    // Load chat history from database
+    try {
+      const messages = await prisma.supportMessage.findMany({
+        where: { chatRoomId },
+        orderBy: { createdAt: 'asc' },
+        take: 100, // Last 100 messages
+      });
+      socket.emit('support:history', messages);
+    } catch (error) {
+      console.error('Error loading chat history:', error);
+      socket.emit('support:history', []);
+    }
+  });
+
+  // User leaves support chat
+  socket.on('leave-support-chat', (data: { userId: string }) => {
+    const chatRoomId = `support-${data.userId}`;
+    socket.leave(chatRoomId);
+    socket.leave('support-users');
+    
+    // Update user status
+    if (activeSupportChats.has(data.userId)) {
+      const chatInfo = activeSupportChats.get(data.userId);
+      chatInfo.isActive = false;
+      activeSupportChats.set(data.userId, chatInfo);
+    }
+
+    console.log(`User ${data.userId} left support chat`);
+
+    // Notify admins
+    io.to('admin-support').emit('support:user-left', { userId: data.userId });
+  });
+
+  // User sends message to support
+  socket.on('support:send-message', async (messageData: any) => {
+    console.log('Support message from user:', messageData);
+    
+    const chatRoomId = `support-${messageData.senderId}`;
+    
+    try {
+      // Save message to database
+      const savedMessage = await prisma.supportMessage.create({
+        data: {
+          chatRoomId,
+          senderId: messageData.senderId,
+          senderName: messageData.senderName,
+          senderRole: messageData.senderRole,
+          body: messageData.body,
+          isAdmin: messageData.senderRole === 'ADMIN',
+        },
+      });
+
+      // Broadcast saved message with ID
+      const messageWithId = {
+        ...messageData,
+        id: savedMessage.id,
+        createdAt: savedMessage.createdAt.toISOString(),
+      };
+
+      io.to(chatRoomId).emit('support:message', messageWithId);
+      io.to('admin-support').emit('support:message', messageWithId);
+
+      // Update last message in active chats
+      if (activeSupportChats.has(messageData.senderId)) {
+        const chatInfo = activeSupportChats.get(messageData.senderId);
+        chatInfo.lastMessage = messageData.body;
+        activeSupportChats.set(messageData.senderId, chatInfo);
+      }
+    } catch (error) {
+      console.error('Error saving support message:', error);
+      socket.emit('support:error', { message: 'Failed to send message' });
+    }
+  });
+
+  // Admin joins support system
+  socket.on('admin-join-support', () => {
+    socket.join('admin-support');
+    console.log(`Admin ${socket.id} joined support system`);
+
+    // Send list of active chats to admin
+    const activeChatsArray = Array.from(activeSupportChats.values());
+    socket.emit('support:active-chats', activeChatsArray);
+  });
+
+  // Admin leaves support system
+  socket.on('admin-leave-support', () => {
+    socket.leave('admin-support');
+    console.log(`Admin ${socket.id} left support system`);
+  });
+
+  // Admin sends message to user
+  socket.on('admin-send-message', async (data: { userId: string; message: any }) => {
+    console.log('Admin message to user:', data.userId);
+    
+    const chatRoomId = `support-${data.userId}`;
+    
+    try {
+      // Save admin message to database
+      const savedMessage = await prisma.supportMessage.create({
+        data: {
+          chatRoomId,
+          senderId: data.message.senderId,
+          senderName: data.message.senderName,
+          senderRole: 'ADMIN',
+          body: data.message.body,
+          isAdmin: true,
+        },
+      });
+
+      // Broadcast saved message with ID
+      const messageWithId = {
+        ...data.message,
+        id: savedMessage.id,
+        createdAt: savedMessage.createdAt.toISOString(),
+      };
+
+      // Send to user's room
+      io.to(chatRoomId).emit('support:message', messageWithId);
+      
+      // Also send back to admin room for confirmation
+      io.to('admin-support').emit('support:message', messageWithId);
+    } catch (error) {
+      console.error('Error saving admin message:', error);
+    }
+  });
+
+  // Admin requests chat history
+  socket.on('admin-request-history', async (data: { userId: string }) => {
+    const chatRoomId = `support-${data.userId}`;
+    try {
+      const messages = await prisma.supportMessage.findMany({
+        where: { chatRoomId },
+        orderBy: { createdAt: 'asc' },
+        take: 100,
+      });
+      socket.emit('support:chat-history', {
+        userId: data.userId,
+        messages,
+      });
+    } catch (error) {
+      console.error('Error loading chat history for admin:', error);
+      socket.emit('support:chat-history', {
+        userId: data.userId,
+        messages: [],
+      });
+    }
+  });
+
+  // User typing indicator
+  socket.on('user-typing', (data: { userId: string; userName: string }) => {
+    io.to('admin-support').emit('user-typing', data);
+  });
+
+  // Admin typing indicator
+  socket.on('admin-typing', (data: { userId: string }) => {
+    const chatRoomId = `support-${data.userId}`;
+    io.to(chatRoomId).emit('admin-typing');
+  });
+
+  // ============ END SUPPORT CHAT HANDLERS ============
+
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
+    
+    // Clean up support chat if user disconnects
+    for (const [userId, chatInfo] of activeSupportChats.entries()) {
+      if (chatInfo.socketId === socket.id) {
+        chatInfo.isActive = false;
+        activeSupportChats.set(userId, chatInfo);
+        io.to('admin-support').emit('support:user-left', { userId });
+        break;
+      }
+    }
   });
 });
 

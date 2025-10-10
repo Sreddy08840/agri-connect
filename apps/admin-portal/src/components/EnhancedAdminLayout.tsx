@@ -20,7 +20,8 @@ import {
   Home,
   UserCheck,
   FileText,
-  Database
+  Database,
+  MessageCircle
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
@@ -48,6 +49,7 @@ export default function EnhancedAdminLayout() {
         { name: 'Users', href: '/users', icon: Users, description: 'User management and verification', badge: null },
         { name: 'Products Review', href: '/products-review', icon: Package, description: 'Review farmer products', badge: null },
         { name: 'Orders', href: '/orders', icon: ShoppingCart, description: 'Monitor customer orders', badge: null },
+        { name: 'Support Chat', href: '/support-chat', icon: MessageCircle, description: 'Live chat support', badge: null },
       ]
     },
     {

@@ -387,3 +387,19 @@ model ProductReview {
   @@unique([productId, userId]) // One review per user per product
   @@map("product_reviews")
 }
+
+model SupportMessage {
+  id          String   @id @default(cuid())
+  chatRoomId  String   // Format: "support-{userId}"
+  senderId    String
+  senderName  String
+  senderRole  String   // FARMER, CUSTOMER, ADMIN
+  body        String
+  isAdmin     Boolean  @default(false)
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([chatRoomId])
+  @@index([senderId])
+  @@map("support_messages")
+}

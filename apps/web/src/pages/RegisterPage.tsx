@@ -39,6 +39,7 @@ type OTPFormData = z.infer<typeof otpSchema>;
 
 export default function RegisterPage() {
   const [step, setStep] = useState<'form' | 'otp'>('form');
+  const [useEmail, setUseEmail] = useState(true);
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [countryCode, setCountryCode] = useState('+91');
@@ -283,69 +284,83 @@ export default function RegisterPage() {
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
-                  <input
-                    {...form.register('email')}
-                    type="email"
-                    placeholder="your.email@example.com"
-                    autoComplete="email"
-                    className="appearance-none block w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all"
-                  />
-                  {form.formState.errors.email && (
-                    <p className="mt-1 text-sm text-red-600">{form.formState.errors.email.message}</p>
-                  )}
-                </div>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-300"></div>
-                  </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-4 bg-gray-50 text-gray-500 font-medium">OR</span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Phone Number</label>
-                  <div className="flex gap-2">
-                    <select
-                      value={countryCode}
-                      onChange={(e) => setCountryCode(e.target.value)}
-                      className="w-32 px-3 py-3 border-2 border-gray-300 rounded-xl bg-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all"
-                    >
-                      <option value="+91">🇮🇳 India (+91)</option>
-                      <option value="+1">🇺🇸 USA (+1)</option>
-                      <option value="+44">🇬🇧 UK (+44)</option>
-                      <option value="+971">🇦🇪 UAE (+971)</option>
-                      <option value="+65">🇸🇬 Singapore (+65)</option>
-                      <option value="+61">🇦🇺 Australia (+61)</option>
-                      <option value="+86">🇨🇳 China (+86)</option>
-                      <option value="+81">🇯🇵 Japan (+81)</option>
-                      <option value="+82">🇰🇷 S. Korea (+82)</option>
-                      <option value="+49">🇩🇪 Germany (+49)</option>
-                      <option value="+33">🇫🇷 France (+33)</option>
-                      <option value="+39">🇮🇹 Italy (+39)</option>
-                      <option value="+34">🇪🇸 Spain (+34)</option>
-                      <option value="+7">🇷🇺 Russia (+7)</option>
-                      <option value="+55">🇧🇷 Brazil (+55)</option>
-                      <option value="+27">🇿🇦 S. Africa (+27)</option>
-                      <option value="+234">🇳🇬 Nigeria (+234)</option>
-                      <option value="+20">🇪🇬 Egypt (+20)</option>
-                    </select>
+                {useEmail ? (
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-sm font-semibold text-gray-700">Email Address</label>
+                      <button
+                        type="button"
+                        onClick={() => setUseEmail(false)}
+                        className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                      >
+                        Use Phone Number
+                      </button>
+                    </div>
                     <input
-                      {...form.register('phone')}
-                      type="tel"
-                      placeholder="1234567890"
-                      autoComplete="tel"
-                      className="flex-1 px-4 py-3 bg-white border-2 border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all"
+                      {...form.register('email')}
+                      type="email"
+                      placeholder="your.email@example.com"
+                      autoComplete="email"
+                      className="appearance-none block w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all"
                     />
+                    {form.formState.errors.email && (
+                      <p className="mt-1 text-sm text-red-600">{form.formState.errors.email.message}</p>
+                    )}
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">Enter phone without country code</p>
-                  {form.formState.errors.phone && (
-                    <p className="mt-1 text-sm text-red-600">{form.formState.errors.phone.message}</p>
-                  )}
-                </div>
+                ) : (
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-sm font-semibold text-gray-700">Phone Number</label>
+                      <button
+                        type="button"
+                        onClick={() => setUseEmail(true)}
+                        className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                      >
+                        Use Email-ID
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <div className="flex items-center border-2 border-gray-300 rounded-xl bg-white focus-within:ring-2 focus-within:ring-green-500 focus-within:border-green-500 transition-all">
+                        <select
+                          value={countryCode}
+                          onChange={(e) => setCountryCode(e.target.value)}
+                          className="px-3 py-3 bg-transparent border-none outline-none text-sm font-medium text-gray-700 cursor-pointer"
+                        >
+                          <option value="+91">🇮🇳 +91</option>
+                          <option value="+1">🇺🇸 +1</option>
+                          <option value="+44">🇬🇧 +44</option>
+                          <option value="+971">🇦🇪 +971</option>
+                          <option value="+65">🇸🇬 +65</option>
+                          <option value="+61">🇦🇺 +61</option>
+                          <option value="+86">🇨🇳 +86</option>
+                          <option value="+81">🇯🇵 +81</option>
+                          <option value="+82">🇰🇷 +82</option>
+                          <option value="+49">🇩🇪 +49</option>
+                          <option value="+33">🇫🇷 +33</option>
+                          <option value="+39">🇮🇹 +39</option>
+                          <option value="+34">🇪🇸 +34</option>
+                          <option value="+7">🇷🇺 +7</option>
+                          <option value="+55">🇧🇷 +55</option>
+                          <option value="+27">🇿🇦 +27</option>
+                          <option value="+234">🇳🇬 +234</option>
+                          <option value="+20">🇪🇬 +20</option>
+                        </select>
+                        <div className="h-6 w-px bg-gray-300"></div>
+                        <input
+                          {...form.register('phone')}
+                          type="tel"
+                          placeholder="1234567890"
+                          autoComplete="tel"
+                          className="flex-1 px-4 py-3 bg-transparent border-none outline-none placeholder-gray-400"
+                        />
+                      </div>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">Enter phone without country code</p>
+                    {form.formState.errors.phone && (
+                      <p className="mt-1 text-sm text-red-600">{form.formState.errors.phone.message}</p>
+                    )}
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>

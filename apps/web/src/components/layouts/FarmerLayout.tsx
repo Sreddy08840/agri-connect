@@ -5,6 +5,7 @@ import { api } from '../../lib/api';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import socketService from '../../lib/socket';
+import FloatingChatButton from '../FloatingChatButton';
 
 export default function FarmerLayout() {
   const { user, clearUser } = useAuthStore();
@@ -186,13 +187,16 @@ export default function FarmerLayout() {
       )}
 
       {/* Main Content */}
-      <main className={`pt-20 transition-all duration-300 ${
+      <main className={`transition-all duration-300 ${
         sidebarOpen ? 'lg:pl-72' : 'lg:pl-20'
       }`}>
         <div className="p-6 lg:p-8">
           <Outlet />
         </div>
       </main>
+
+      {/* Floating Chat Button */}
+      <FloatingChatButton />
     </div>
   );
 }

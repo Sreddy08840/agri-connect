@@ -1,8 +1,11 @@
 import { useQuery } from 'react-query';
 import { api } from '../../lib/api';
 import { Package, ShoppingBag, DollarSign, TrendingUp } from 'lucide-react';
+import { useAuthStore } from '../../stores/authStore';
 
 export default function FarmerAnalyticsPage() {
+  const { user } = useAuthStore();
+
   const { data: myProducts } = useQuery(
     ['farmer-products'],
     () => api.get('/products/mine/list').then(res => res.data),
@@ -13,8 +16,20 @@ export default function FarmerAnalyticsPage() {
     () => api.get('/orders?mine=farmer&limit=5').then(res => res.data).catch(() => ({ orders: [], pagination: {} })),
   );
 
+  // Fetch all farmer orders for earnings calculation
+  const { data: allOrdersData } = useQuery(
+    'farmer-all-orders',
+    () => api.get('/orders/farmer-orders').then(res => res.data),
+    { enabled: !!user }
+  );
+  const allOrders = allOrdersData?.orders || [];
+
   const productCount = myProducts?.products?.length || 0;
   const orderCount = myOrders?.orders?.length || 0;
+  
+  // Calculate real earnings from delivered orders
+  const totalEarnings = allOrders.reduce((sum: number, order: any) => 
+    order.status === 'DELIVERED' ? sum + (order.total || 0) : sum, 0);
 
   return (
     <div className="space-y-6">
@@ -43,8 +58,8 @@ export default function FarmerAnalyticsPage() {
           <div className="flex items-center">
             <DollarSign className="h-8 w-8 text-yellow-600" />
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Earnings (demo)</p>
-              <p className="text-2xl font-semibold text-gray-900">₹0</p>
+              <p className="text-sm font-medium text-gray-600">Total Earnings</p>
+              <p className="text-2xl font-semibold text-gray-900">₹{totalEarnings.toLocaleString()}</p>
             </div>
           </div>
         </div>

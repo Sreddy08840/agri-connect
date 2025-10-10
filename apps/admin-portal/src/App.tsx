@@ -14,6 +14,7 @@ import SettingsPage from './pages/SettingsPage';
 import SystemCleanupPage from './pages/SystemCleanupPage';
 import ApiTestPage from './pages/ApiTestPage';
 import AuthTestPage from './pages/AuthTestPage';
+import SupportChatPage from './pages/SupportChatPage';
 
 // Enhanced Layout
 import EnhancedAdminLayout from './components/EnhancedAdminLayout';
@@ -120,6 +121,7 @@ function App() {
         <Route path="users" element={<EnhancedUsersPage />} />
         <Route path="products-review" element={<ProductsReviewPage />} />
         <Route path="orders" element={<EnhancedOrdersPage />} />
+        <Route path="support-chat" element={<SupportChatPage />} />
         <Route path="cleanup" element={<SystemCleanupPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="api-test" element={<ApiTestPage />} />

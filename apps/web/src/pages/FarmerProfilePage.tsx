@@ -7,6 +7,7 @@ import { api } from '../lib/api';
 import { getFirstImageUrl } from '../lib/imageUtils';
 import { useMutation, useQuery } from 'react-query';
 import toast from 'react-hot-toast';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { 
   User, 
   MapPin, 
@@ -47,6 +48,8 @@ import {
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import IconButton from '../components/ui/IconButton';
+import UserGuideModal from '../components/UserGuideModal';
+import EmailSupportModal from '../components/EmailSupportModal';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import TwoFactorSetup from '../components/TwoFactorSetup';
 import EmailVerification from '../components/EmailVerification';
@@ -54,6 +57,7 @@ import ProfilePhotoUpload from '../components/ProfilePhotoUpload';
 import AddProductModal from '../components/AddProductModal';
 import EditProductModal from '../components/EditProductModal';
 import socketService from '../lib/socket';
+import LiveChatSupport from '../components/LiveChatSupport';
 
 const farmerProfileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -82,6 +86,9 @@ export default function FarmerProfilePage() {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [showProductDetails, setShowProductDetails] = useState(false);
   const [showEditProduct, setShowEditProduct] = useState(false);
+  const [showLiveChat, setShowLiveChat] = useState(false);
+  const [showUserGuide, setShowUserGuide] = useState(false);
+  const [showEmailSupport, setShowEmailSupport] = useState(false);
 
   const form = useForm<FarmerProfileFormData>({
     resolver: zodResolver(farmerProfileSchema),
@@ -247,23 +254,68 @@ export default function FarmerProfilePage() {
       const completedOrders = orders.filter((o: any) => o.status === 'DELIVERED').length;
       const lowStockProducts = products.filter((p: any) => p.stockQty < 10).length;
       
+      // Calculate monthly revenue from actual orders
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      const thisMonthRevenue = orders.reduce((sum: number, order: any) => {
+        const orderDate = new Date(order.createdAt);
+        if (orderDate.getMonth() === currentMonth && 
+            orderDate.getFullYear() === currentYear && 
+            order.status === 'DELIVERED') {
+          return sum + order.total;
+        }
+        return sum;
+      }, 0);
+      
+      // Calculate pending payments (orders that are not yet delivered)
+      const pendingPayments = orders.reduce((sum: number, order: any) => 
+        order.status !== 'DELIVERED' && order.status !== 'CANCELLED' ? sum + order.total : sum, 0);
+      
+      // Calculate product sales from order items
+      const productSales = new Map();
+      orders.forEach((order: any) => {
+        if (order.items && Array.isArray(order.items)) {
+          order.items.forEach((item: any) => {
+            const productId = item.productId || item.product?.id;
+            if (productId) {
+              const current = productSales.get(productId) || 0;
+              productSales.set(productId, current + (item.quantity || 0));
+            }
+          });
+        }
+      });
+      
       return Promise.resolve({
         totalRevenue,
         totalOrders,
         pendingOrders,
         completedOrders,
         lowStockProducts,
-        monthlyRevenue: Array.from({length: 12}, (_, i) => ({
-          month: new Date(2024, i).toLocaleString('default', { month: 'short' }),
-          revenue: Math.floor(Math.random() * 50000) + 10000
-        })),
+        thisMonthRevenue,
+        pendingPayments,
+        productSales,
+        monthlyRevenue: Array.from({length: 12}, (_, i) => {
+          const monthRevenue = orders.reduce((sum: number, order: any) => {
+            const orderDate = new Date(order.createdAt);
+            if (orderDate.getMonth() === i && 
+                orderDate.getFullYear() === currentYear && 
+                order.status === 'DELIVERED') {
+              return sum + order.total;
+            }
+            return sum;
+          }, 0);
+          return {
+            month: new Date(currentYear, i).toLocaleString('default', { month: 'short' }),
+            revenue: monthRevenue
+          };
+        }),
         topProducts: products.slice(0, 5).map((p: any) => ({
           ...p,
-          sales: Math.floor(Math.random() * 100) + 10
+          sales: productSales.get(p.id) || 0
         }))
       });
     },
-    { enabled: !!user && products.length > 0 && orders.length > 0 }
+    { enabled: !!user && products.length >= 0 && orders.length >= 0 }
   );
 
   const onSubmit = (data: FarmerProfileFormData) => {
@@ -976,7 +1028,7 @@ export default function FarmerProfilePage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-blue-600">This Month</p>
-                      <p className="text-2xl font-bold text-blue-700">₹{Math.floor(Math.random() * 25000) + 5000}</p>
+                      <p className="text-2xl font-bold text-blue-700">₹{analyticsData?.thisMonthRevenue?.toLocaleString() || '0'}</p>
                     </div>
                     <Wallet className="h-8 w-8 text-blue-500" />
                   </div>
@@ -985,7 +1037,7 @@ export default function FarmerProfilePage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-purple-600">Pending Payments</p>
-                      <p className="text-2xl font-bold text-purple-700">₹{Math.floor(Math.random() * 10000) + 1000}</p>
+                      <p className="text-2xl font-bold text-purple-700">₹{analyticsData?.pendingPayments?.toLocaleString() || '0'}</p>
                     </div>
                     <Clock className="h-8 w-8 text-purple-500" />
                   </div>
@@ -1100,12 +1152,51 @@ export default function FarmerProfilePage() {
                     <PieChart className="h-5 w-5 mr-2" />
                     Monthly Revenue Trend
                   </h3>
-                  <div className="h-64 flex items-center justify-center text-gray-500">
-                    <div className="text-center">
-                      <BarChart3 className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-                      <p>Revenue chart would be displayed here</p>
-                      <p className="text-sm">Integration with charting library needed</p>
-                    </div>
+                  <div className="h-64">
+                    {analyticsData?.monthlyRevenue && analyticsData.monthlyRevenue.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={analyticsData.monthlyRevenue}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                          <XAxis 
+                            dataKey="month" 
+                            stroke="#6b7280"
+                            style={{ fontSize: '12px' }}
+                          />
+                          <YAxis 
+                            stroke="#6b7280"
+                            style={{ fontSize: '12px' }}
+                            tickFormatter={(value) => `₹${value.toLocaleString()}`}
+                          />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: '#fff', 
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '8px',
+                              padding: '8px'
+                            }}
+                            formatter={(value: any) => [`₹${value.toLocaleString()}`, 'Revenue']}
+                          />
+                          <Legend />
+                          <Line 
+                            type="monotone" 
+                            dataKey="revenue" 
+                            stroke="#10b981" 
+                            strokeWidth={2}
+                            dot={{ fill: '#10b981', r: 4 }}
+                            activeDot={{ r: 6 }}
+                            name="Revenue"
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-gray-500">
+                        <div className="text-center">
+                          <BarChart3 className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                          <p>No revenue data available yet</p>
+                          <p className="text-sm">Complete some orders to see trends</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
@@ -1114,20 +1205,26 @@ export default function FarmerProfilePage() {
                     Top Performing Products
                   </h3>
                   <div className="space-y-3">
-                    {products.slice(0, 5).map((product: any, index: number) => (
-                      <div key={product.id} className="flex justify-between items-center">
-                        <div className="flex items-center">
-                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3 text-sm font-medium text-blue-600">
-                            {index + 1}
+                    {analyticsData?.topProducts && analyticsData.topProducts.length > 0 ? (
+                      analyticsData.topProducts.map((product: any, index: number) => (
+                        <div key={product.id} className="flex justify-between items-center">
+                          <div className="flex items-center">
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3 text-sm font-medium text-blue-600">
+                              {index + 1}
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                              <div className="text-xs text-gray-500">₹{product.price}/{product.unit}</div>
+                            </div>
                           </div>
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                            <div className="text-xs text-gray-500">₹{product.price}/{product.unit}</div>
-                          </div>
+                          <div className="text-sm text-gray-600">{product.sales} sold</div>
                         </div>
-                        <div className="text-sm text-gray-600">{Math.floor(Math.random() * 100) + 10} sold</div>
+                      ))
+                    ) : (
+                      <div className="text-center py-4 text-gray-500 text-sm">
+                        No sales data available yet
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               </div>
@@ -1222,19 +1319,37 @@ export default function FarmerProfilePage() {
                   <MessageCircle className="h-8 w-8 text-blue-500 mx-auto mb-2" />
                   <h3 className="font-medium text-gray-900 mb-2">Live Chat</h3>
                   <p className="text-sm text-gray-600 mb-3">Get instant help from our support team</p>
-                  <Button variant="outline" size="sm">Start Chat</Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowLiveChat(true)}
+                  >
+                    Start Chat
+                  </Button>
                 </div>
                 <div className="border rounded-lg p-4 text-center">
                   <BookOpen className="h-8 w-8 text-green-500 mx-auto mb-2" />
                   <h3 className="font-medium text-gray-900 mb-2">User Guide</h3>
                   <p className="text-sm text-gray-600 mb-3">Learn how to use all platform features</p>
-                  <Button variant="outline" size="sm">View Guide</Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowUserGuide(true)}
+                  >
+                    View Guide
+                  </Button>
                 </div>
                 <div className="border rounded-lg p-4 text-center">
                   <Mail className="h-8 w-8 text-purple-500 mx-auto mb-2" />
                   <h3 className="font-medium text-gray-900 mb-2">Email Support</h3>
                   <p className="text-sm text-gray-600 mb-3">Send us an email for detailed assistance</p>
-                  <Button variant="outline" size="sm">Send Email</Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowEmailSupport(true)}
+                  >
+                    Send Email
+                  </Button>
                 </div>
               </div>
 
@@ -1464,6 +1579,25 @@ export default function FarmerProfilePage() {
           // Refresh products list
           window.location.reload();
         }}
+      />
+
+      {/* Live Chat Support */}
+      <LiveChatSupport 
+        isOpen={showLiveChat}
+        onClose={() => setShowLiveChat(false)}
+      />
+
+      {/* User Guide Modal */}
+      <UserGuideModal 
+        isOpen={showUserGuide}
+        onClose={() => setShowUserGuide(false)}
+        userRole={user?.role}
+      />
+
+      {/* Email Support Modal */}
+      <EmailSupportModal 
+        isOpen={showEmailSupport}
+        onClose={() => setShowEmailSupport(false)}
       />
     </div>
   );

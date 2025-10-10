@@ -7,8 +7,8 @@ async function createAdmin() {
   try {
     console.log('🔐 Creating admin user...');
     
-    const adminPhone = '+919606860853';
-    const adminPassword = 'Santosh@123';
+    const adminPhone = '+918618808929';
+    const adminPassword = 'Santosh@1234';
     const adminName = 'Santosh Admin';
     
     // Check if admin already exists

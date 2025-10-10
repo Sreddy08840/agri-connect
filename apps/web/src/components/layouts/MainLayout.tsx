@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import Footer from '../shared/Footer';
 import LanguageSwitcher from '../LanguageSwitcher';
+import FloatingChatButton from '../FloatingChatButton';
 import { useState, useRef, useEffect } from 'react';
 
 export default function MainLayout() {
@@ -359,6 +360,9 @@ export default function MainLayout() {
 
       {/* Footer */}
       <Footer />
+
+      {/* Floating Chat Button */}
+      <FloatingChatButton />
     </div>
   );
 }

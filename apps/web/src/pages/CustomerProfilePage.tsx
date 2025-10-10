@@ -24,7 +24,8 @@ import {
   Plus,
   Trash2,
   AlertTriangle,
-  Eye
+  Eye,
+  MessageCircle
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import IconButton from '../components/ui/IconButton';
@@ -32,6 +33,7 @@ import ChangePasswordModal from '../components/ChangePasswordModal';
 import TwoFactorSetup from '../components/TwoFactorSetup';
 import EmailVerification from '../components/EmailVerification';
 import ProfilePhotoUpload from '../components/ProfilePhotoUpload';
+import LiveChatSupport from '../components/LiveChatSupport';
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -50,6 +52,7 @@ export default function CustomerProfilePage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showTwoFactorSetup, setShowTwoFactorSetup] = useState(false);
+  const [showLiveChat, setShowLiveChat] = useState(false);
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -502,18 +505,51 @@ export default function CustomerProfilePage() {
         return (
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">Help & Support</h2>
-            <div className="space-y-4">
-              <div className="border rounded-lg p-4">
-                <h3 className="font-medium mb-2">Frequently Asked Questions</h3>
-                <p className="text-sm text-gray-600">Find answers to common questions</p>
+            
+            {/* Quick Actions */}
+            <div className="grid md:grid-cols-3 gap-4 mb-6">
+              <div className="border rounded-lg p-4 text-center">
+                <MessageCircle className="h-8 w-8 text-blue-500 mx-auto mb-2" />
+                <h3 className="font-medium text-gray-900 mb-2">Live Chat</h3>
+                <p className="text-sm text-gray-600 mb-3">Get instant help from our support team</p>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowLiveChat(true)}
+                >
+                  Start Chat
+                </Button>
               </div>
-              <div className="border rounded-lg p-4">
-                <h3 className="font-medium mb-2">Contact Support</h3>
-                <p className="text-sm text-gray-600">Get help via chat, email, or phone</p>
+              <div className="border rounded-lg p-4 text-center">
+                <HelpCircle className="h-8 w-8 text-green-500 mx-auto mb-2" />
+                <h3 className="font-medium text-gray-900 mb-2">FAQ</h3>
+                <p className="text-sm text-gray-600 mb-3">Find answers to common questions</p>
+                <Button variant="outline" size="sm">View FAQ</Button>
               </div>
-              <div className="border rounded-lg p-4">
-                <h3 className="font-medium mb-2">Report an Issue</h3>
-                <p className="text-sm text-gray-600">Report problems with orders or payments</p>
+              <div className="border rounded-lg p-4 text-center">
+                <Mail className="h-8 w-8 text-purple-500 mx-auto mb-2" />
+                <h3 className="font-medium text-gray-900 mb-2">Email Support</h3>
+                <p className="text-sm text-gray-600 mb-3">Send us an email for assistance</p>
+                <Button variant="outline" size="sm">Send Email</Button>
+              </div>
+            </div>
+
+            {/* Common Issues */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Common Issues</h3>
+              <div className="space-y-4">
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 mb-2">How do I track my order?</h4>
+                  <p className="text-sm text-gray-600">Go to Order History tab to view all your orders and their current status.</p>
+                </div>
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 mb-2">How do I cancel an order?</h4>
+                  <p className="text-sm text-gray-600">You can cancel orders that haven't been shipped yet from the Order History section.</p>
+                </div>
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 mb-2">Payment issues?</h4>
+                  <p className="text-sm text-gray-600">Check your Payment Methods tab or contact support for payment-related queries.</p>
+                </div>
               </div>
             </div>
           </div>
@@ -684,6 +720,12 @@ export default function CustomerProfilePage() {
       <TwoFactorSetup 
         isOpen={showTwoFactorSetup}
         onClose={() => setShowTwoFactorSetup(false)}
+      />
+
+      {/* Live Chat Support */}
+      <LiveChatSupport 
+        isOpen={showLiveChat}
+        onClose={() => setShowLiveChat(false)}
       />
     </div>
   );
