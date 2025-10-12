@@ -19,6 +19,53 @@ services:
     volumes:
       - redis_data:/data
 
+  ml-service:
+    build:
+      context: ./packages/ml
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=file:../api/prisma/dev.db
+      - MODEL_DIR=/app/models
+      - VECTOR_INDEX_DIR=/app/vectors
+      - ML_SERVICE_HOST=0.0.0.0
+      - ML_SERVICE_PORT=8000
+    volumes:
+      - ./packages/ml/models:/app/models
+      - ./packages/ml/vectors:/app/vectors
+      - ./packages/api/prisma:/app/api/prisma:ro
+    depends_on:
+      - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  api:
+    build:
+      context: ./packages/api
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=file:./prisma/dev.db
+      - PORT=8080
+      - NODE_ENV=development
+      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+      - REDIS_URL=redis://redis:6379
+      - ML_BASE_URL=http://ml-service:8000
+    volumes:
+      - ./packages/api:/app
+      - /app/node_modules
+    depends_on:
+      - redis
+      - ml-service
+    restart: unless-stopped
+    command: npm run dev
+
 volumes:
   postgres_data:
   redis_data:

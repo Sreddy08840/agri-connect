@@ -5,20 +5,8 @@ __pycache__/
 *.so
 .Python
 build/
-develop-eggs/
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
 
 # Virtual Environment
 venv/
@@ -37,11 +25,30 @@ env/
 .env
 .env.local
 
-# Models
+# Models and vectors
+models/
+vectors/
 *.pkl
 *.joblib
 *.h5
 *.model
+*.bin
+*.index
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
 
 # Logs
 *.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db

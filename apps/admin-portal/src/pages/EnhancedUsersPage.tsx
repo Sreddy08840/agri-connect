@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { api } from '../lib/api';
 import toast from 'react-hot-toast';
-import { Search, Filter, UserCheck, UserX, Users as UsersIcon, Eye } from 'lucide-react';
+import { Search, Filter, UserCheck, UserX, Users as UsersIcon, Eye, Download } from 'lucide-react';
 
 type UserRow = {
   id: string;
   name: string | null;
   phone: string;
+  email?: string | null;
+  googleId?: string | null;
   role: 'CUSTOMER' | 'FARMER' | 'ADMIN';
   verified: boolean;
   createdAt: string;
@@ -56,7 +58,7 @@ export default function EnhancedUsersPage() {
   const impersonateMutation = useMutation(
     (userId: string) => api.post(`/users/${userId}/impersonate`),
     {
-      onSuccess: (response, userId) => {
+      onSuccess: (response) => {
         const { accessToken, refreshToken, user } = response.data;
         
         // Save current admin tokens
@@ -98,6 +100,74 @@ export default function EnhancedUsersPage() {
     setPage(1);
   };
 
+  const handleExportCSV = () => {
+    if (!users || users.length === 0) {
+      toast.error('No users to export');
+      return;
+    }
+
+    try {
+      const headers = ['Name', 'Phone', 'Email', 'Google ID', 'Role', 'Verified', 'Created At'];
+      const csvRows = [headers.join(',')];
+
+      users.forEach((user: any) => {
+        const row = [
+          user?.name || 'N/A',
+          user?.phone || 'N/A',
+          user?.email || 'N/A',
+          user?.googleId || 'N/A',
+          user?.role || 'N/A',
+          user?.verified ? 'Yes' : 'No',
+          user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'
+        ];
+        csvRows.push(row.map(cell => `"${cell}"`).join(','));
+      });
+
+      const csvContent = csvRows.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `users_export_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Users exported successfully!');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export users');
+    }
+  };
+
+  const handleExportJSON = () => {
+    if (!users || users.length === 0) {
+      toast.error('No users to export');
+      return;
+    }
+
+    try {
+      const jsonContent = JSON.stringify(users, null, 2);
+      const blob = new Blob([jsonContent], { type: 'application/json' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `users_export_${new Date().toISOString().split('T')[0]}.json`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Users exported as JSON successfully!');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export users');
+    }
+  };
+
   const toggleVerification = (userId: string, currentVerified: boolean) => {
     setVerifying(userId);
     verifyUserMutation.mutate(
@@ -130,6 +200,26 @@ export default function EnhancedUsersPage() {
 
   return (
     <div className="space-y-6">
+      {/* Export Actions */}
+      <div className="flex justify-end gap-3">
+        <button
+          onClick={handleExportCSV}
+          disabled={!users || users.length === 0}
+          className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Export CSV
+        </button>
+        <button
+          onClick={handleExportJSON}
+          disabled={!users || users.length === 0}
+          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Export JSON
+        </button>
+      </div>
+
       {/* Search and Filters */}
       <div className="bg-white rounded-lg shadow p-6">
         <form onSubmit={handleSearch} className="flex flex-wrap gap-4 items-end">
@@ -143,7 +233,7 @@ export default function EnhancedUsersPage() {
                 type="text"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Search by name or phone number"
+                placeholder="Search by name, phone, or email"
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -188,7 +278,7 @@ export default function EnhancedUsersPage() {
                   User
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Phone
+                  Contact
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Role
@@ -223,8 +313,12 @@ export default function EnhancedUsersPage() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {user.phone}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {user.phone && <div>📱 {user.phone}</div>}
+                      {user.email && <div className="text-gray-600">✉️ {user.email}</div>}
+                      {user.googleId && <div className="text-gray-500 text-xs">🔗 Google: {user.googleId.substring(0, 12)}...</div>}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${

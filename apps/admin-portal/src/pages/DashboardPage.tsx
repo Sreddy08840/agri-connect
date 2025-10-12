@@ -13,7 +13,7 @@ import {
 
 export default function DashboardPage() {
   // Fetch dashboard stats
-  const { data: stats, isLoading, error } = useQuery(
+  const { data: stats, isLoading } = useQuery(
     'admin-dashboard-stats',
     async () => {
       try {
@@ -35,9 +35,9 @@ export default function DashboardPage() {
           totalProducts: productsMeta.total,
           pendingProducts: pendingCount,
           totalOrders: orders.length,
-          pendingOrders: orders.filter((o: any) => o.status === 'PLACED').length,
+          pendingOrders: orders.filter((o: any) => o.status === 'PLACED' || o.status === 'CONFIRMED').length,
           completedOrders: orders.filter((o: any) => o.status === 'DELIVERED').length,
-          totalRevenue: orders.reduce((sum: number, o: any) => sum + (o.totalAmount || 0), 0),
+          totalRevenue: orders.reduce((sum: number, o: any) => sum + (Number(o.total) || 0), 0),
         };
       } catch (error) {
         console.error('Dashboard API error:', error);
@@ -115,21 +115,30 @@ export default function DashboardPage() {
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
           <div className="space-y-3">
-            <button className="w-full flex items-center p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+            <button 
+              onClick={() => window.location.href = '/products-review'}
+              className="w-full flex items-center p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+            >
               <AlertCircle className="h-5 w-5 text-orange-500 mr-3" />
               <div>
                 <p className="font-medium text-gray-900">Review Pending Products</p>
                 <p className="text-sm text-gray-500">{stats?.pendingProducts || 0} products awaiting approval</p>
               </div>
             </button>
-            <button className="w-full flex items-center p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+            <button 
+              onClick={() => window.location.href = '/orders'}
+              className="w-full flex items-center p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+            >
               <Clock className="h-5 w-5 text-blue-500 mr-3" />
               <div>
                 <p className="font-medium text-gray-900">Manage Pending Orders</p>
                 <p className="text-sm text-gray-500">{stats?.pendingOrders || 0} orders need attention</p>
               </div>
             </button>
-            <button className="w-full flex items-center p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+            <button 
+              onClick={() => window.location.href = '/users'}
+              className="w-full flex items-center p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+            >
               <Users className="h-5 w-5 text-green-500 mr-3" />
               <div>
                 <p className="font-medium text-gray-900">User Management</p>
@@ -139,39 +148,73 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* System Status */}
+        {/* Performance Metrics */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">System Status</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Performance Metrics</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                <span className="text-gray-900">API Server</span>
+                <TrendingUp className="h-5 w-5 text-green-500 mr-3" />
+                <span className="text-gray-900">Order Fulfillment Rate</span>
               </div>
-              <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded">Online</span>
+              <span className="text-sm font-semibold text-gray-900">
+                {stats?.totalOrders ? Math.round((stats.completedOrders / stats.totalOrders) * 100) : 0}%
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                <span className="text-gray-900">Database</span>
+                <CheckCircle className="h-5 w-5 text-blue-500 mr-3" />
+                <span className="text-gray-900">Product Approval Rate</span>
               </div>
-              <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded">Connected</span>
+              <span className="text-sm font-semibold text-gray-900">
+                {stats?.totalProducts ? Math.round(((stats.totalProducts - stats.pendingProducts) / stats.totalProducts) * 100) : 0}%
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                <span className="text-gray-900">File Storage</span>
+                <Users className="h-5 w-5 text-purple-500 mr-3" />
+                <span className="text-gray-900">Active Users</span>
               </div>
-              <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded">Available</span>
+              <span className="text-sm font-semibold text-gray-900">{stats?.totalUsers || 0}</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <TrendingUp className="h-5 w-5 text-blue-500 mr-3" />
-                <span className="text-gray-900">Performance</span>
+                <DollarSign className="h-5 w-5 text-yellow-500 mr-3" />
+                <span className="text-gray-900">Avg Order Value</span>
               </div>
-              <span className="text-sm text-blue-600 bg-blue-100 px-2 py-1 rounded">Optimal</span>
+              <span className="text-sm font-semibold text-gray-900">
+                ₹{stats?.totalOrders ? Math.round((stats.totalRevenue || 0) / stats.totalOrders) : 0}
+              </span>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Quick Export Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Export</h3>
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={() => window.location.href = '/orders'}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            <ShoppingCart className="h-4 w-4 mr-2" />
+            Export Orders
+          </button>
+          <button
+            onClick={() => window.location.href = '/users'}
+            className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
+          >
+            <Users className="h-4 w-4 mr-2" />
+            Export Users
+          </button>
+          <button
+            onClick={() => window.location.href = '/products-review'}
+            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+          >
+            <Package className="h-4 w-4 mr-2" />
+            Export Products
+          </button>
         </div>
       </div>
 

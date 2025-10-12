@@ -6,6 +6,7 @@ import { Prisma } from '@prisma/client';
 import { generateTokens } from '../utils/jwt';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import { sendVerificationEmail } from '../utils/emailService';
 
 const router: import('express').Router = Router();
 
@@ -433,16 +434,23 @@ router.post('/me/email/send-verification', authenticateToken, async (req: Authen
       }
     });
 
-    // In a real app, you would send an email here
-    // For now, we'll just return the token for testing
+    // Send verification email from admin email
     const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:5174'}/verify-email?token=${token}`;
     
-    console.log(`Email verification URL for ${user.email}: ${verificationUrl}`);
+    const emailSent = await sendVerificationEmail(
+      user.email,
+      user.name || 'User',
+      verificationUrl
+    );
+
+    if (!emailSent && process.env.NODE_ENV !== 'development') {
+      return res.status(500).json({ error: 'Failed to send verification email. Please try again later.' });
+    }
 
     res.json({ 
       success: true, 
-      message: 'Verification email sent successfully',
-      // Remove this in production - only for testing
+      message: 'Verification email sent successfully from agri-connect25@gmail.com',
+      // Only show URL in development for testing
       verificationUrl: process.env.NODE_ENV === 'development' ? verificationUrl : undefined
     });
   } catch (error) {

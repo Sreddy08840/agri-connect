@@ -379,16 +379,6 @@ export default function EnhancedAdminLayout() {
                   <p className="text-gray-600 mt-1">{currentPageInfo.description}</p>
                 </div>
               </div>
-
-              {/* Quick Actions */}
-              <div className="hidden lg:flex items-center space-x-3">
-                <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-all duration-200 font-medium">
-                  Export
-                </button>
-                <button className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all duration-200 font-medium shadow-lg shadow-red-600/25">
-                  New Action
-                </button>
-              </div>
             </div>
           </div>
         </div>

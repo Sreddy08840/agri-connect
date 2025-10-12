@@ -1,12 +1,25 @@
 from fastapi import FastAPI, HTTPException
+from contextlib import asynccontextmanager
 import os
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
 from sqlalchemy import create_engine, text
+from dotenv import load_dotenv
 
-# Default to SQLite database in the API package
+# Load environment variables from .env file
+load_dotenv()
+
+# Database Configuration
 DATABASE_URL = os.environ.get('DATABASE_URL', 'file:../api/prisma/dev.db')
+
+# Server Configuration
+ML_SERVICE_PORT = int(os.environ.get('ML_SERVICE_PORT', '8000'))
+ML_SERVICE_HOST = os.environ.get('ML_SERVICE_HOST', '0.0.0.0')
+
+# Model Configuration
+TFIDF_MAX_FEATURES = int(os.environ.get('TFIDF_MAX_FEATURES', '20000'))
+DEFAULT_RECOMMENDATIONS = int(os.environ.get('DEFAULT_RECOMMENDATIONS', '10'))
 
 # Convert Prisma file: format to SQLite format for SQLAlchemy
 if DATABASE_URL.startswith('file:'):
@@ -15,7 +28,14 @@ if DATABASE_URL.startswith('file:'):
 
 engine = create_engine(DATABASE_URL, pool_pre_ping=True, connect_args={'check_same_thread': False} if 'sqlite' in DATABASE_URL else {})
 
-app = FastAPI(title="Agri-Connect ML Service")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    load_products()
+    yield
+    # Shutdown (if needed)
+
+app = FastAPI(title="Agri-Connect ML Service", lifespan=lifespan)
 
 # cached data in memory
 prod_df = None
@@ -36,15 +56,12 @@ def load_products():
         prod_df = pd.DataFrame(columns=['id','title','description','category','text'])
         return
     prod_df['text'] = prod_df['title'].fillna('') + ' ' + prod_df['description'].fillna('') + ' ' + prod_df['category'].fillna('')
-    tfidf = TfidfVectorizer(stop_words='english', max_features=20000)
+    tfidf = TfidfVectorizer(stop_words='english', max_features=TFIDF_MAX_FEATURES)
     tfidf_matrix = tfidf.fit_transform(prod_df['text'].values)
 
-@app.on_event('startup')
-def startup():
-    load_products()
 
 @app.get('/recommendations')
-def recommendations(userId: int, n: int = 10):
+def recommendations(userId: int, n: int = DEFAULT_RECOMMENDATIONS):
     # find last viewed product
     q = text('SELECT productId FROM events WHERE userId = :uid AND type = \'view\' ORDER BY createdAt DESC LIMIT 1')
     with engine.connect() as conn:
@@ -69,4 +86,12 @@ def refresh():
     load_products()
     return {'status': 'refreshed'}
 
-# Run: uvicorn main:app --host 0.0.0.0 --port 8000
+# Health check endpoint
+@app.get('/health')
+def health_check():
+    return {'status': 'healthy', 'timestamp': pd.Timestamp.now().isoformat()}
+
+# Run with environment variables:
+# uvicorn main:app --host 0.0.0.0 --port 8000
+# Or using the configured host and port:
+# uvicorn main:app --host ${ML_SERVICE_HOST} --port ${ML_SERVICE_PORT}

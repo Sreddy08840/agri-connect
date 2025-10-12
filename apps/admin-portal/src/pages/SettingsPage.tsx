@@ -1,17 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useMutation, useQueryClient } from 'react-query';
 import { api } from '../lib/api';
 import { 
   Settings, 
   Save, 
   Bell, 
   Shield, 
-  Database,
-  Server,
-  Mail,
-  Phone,
-  Globe,
-  Lock
+  Database
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -24,6 +19,7 @@ export default function SettingsPage() {
     general: {
       siteName: 'Agri-Connect',
       siteDescription: 'Connect farmers directly with customers',
+      adminEmail: 'agri-connect25@gmail.com',
       supportEmail: 'support@agri-connect.com',
       supportPhone: '+91-8618808929',
       maintenanceMode: false,
@@ -170,6 +166,19 @@ export default function SettingsPage() {
                       value={settings.general.siteName}
                       onChange={(e) => updateSetting('general', 'siteName', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Admin Email
+                    </label>
+                    <input
+                      type="email"
+                      value={settings.general.adminEmail}
+                      onChange={(e) => updateSetting('general', 'adminEmail', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                      placeholder="agri-connect25@gmail.com"
                     />
                   </div>
                   

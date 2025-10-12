@@ -35,10 +35,12 @@ type Order = {
   id: string;
   orderNumber: string;
   status: OrderStatus;
-  totalAmount: number;
+  total: number;
+  totalAmount?: number; // For backward compatibility
   paymentMethod: string;
-  paymentStatus: string;
-  deliveryAddress: string;
+  paymentStatus?: string;
+  deliveryAddress?: string;
+  addressSnapshot?: string;
   createdAt: string;
   updatedAt: string;
   items: OrderItem[];
@@ -84,8 +86,74 @@ export default function EnhancedOrdersPage() {
     setPage(1);
   };
 
-  const handleExport = () => {
-    toast.success('Export functionality will be implemented soon');
+  const handleExportCSV = () => {
+    if (!orders || orders.length === 0) {
+      toast.error('No orders to export');
+      return;
+    }
+
+    try {
+      // Create CSV content
+      const headers = ['Order Number', 'Customer Name', 'Customer Phone', 'Farmer Business', 'Status', 'Total Amount', 'Payment Method', 'Order Date'];
+      const csvRows = [headers.join(',')];
+
+      orders.forEach((order: any) => {
+        const row = [
+          order?.orderNumber || '',
+          order?.customer?.name || 'N/A',
+          order?.customer?.phone || 'N/A',
+          order?.farmer?.businessName || 'N/A',
+          order?.status || 'N/A',
+          Number(order?.total || order?.totalAmount || 0).toFixed(2),
+          order?.paymentMethod || 'N/A',
+          order?.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'
+        ];
+        csvRows.push(row.map(cell => `"${cell}"`).join(','));
+      });
+
+      const csvContent = csvRows.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `orders_export_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Orders exported successfully!');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export orders');
+    }
+  };
+
+  const handleExportJSON = () => {
+    if (!orders || orders.length === 0) {
+      toast.error('No orders to export');
+      return;
+    }
+
+    try {
+      const jsonContent = JSON.stringify(orders, null, 2);
+      const blob = new Blob([jsonContent], { type: 'application/json' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `orders_export_${new Date().toISOString().split('T')[0]}.json`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Orders exported as JSON successfully!');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export orders');
+    }
   };
 
   const getStatusColor = (status: OrderStatus) => {
@@ -223,13 +291,22 @@ export default function EnhancedOrdersPage() {
   return (
     <div className="space-y-6">
       {/* Action Bar */}
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-3">
         <button
-          onClick={handleExport}
-          className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+          onClick={handleExportCSV}
+          disabled={!orders || orders.length === 0}
+          className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Download className="h-4 w-4 mr-2" />
-          Export Orders
+          Export CSV
+        </button>
+        <button
+          onClick={handleExportJSON}
+          disabled={!orders || orders.length === 0}
+          className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Export JSON
         </button>
       </div>
 
@@ -358,7 +435,7 @@ export default function EnhancedOrdersPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
-                      ₹{Number(order?.totalAmount ?? 0).toFixed(2)}
+                      ₹{Number(order?.total ?? order?.totalAmount ?? 0).toFixed(2)}
                     </div>
                     <div className="text-sm text-gray-500">
                       {order?.paymentMethod || '—'}
@@ -478,7 +555,7 @@ export default function EnhancedOrdersPage() {
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Total Amount:</span>
-                        <span className="font-semibold text-gray-900">₹{Number(selectedOrder?.totalAmount ?? 0).toFixed(2)}</span>
+                        <span className="font-semibold text-gray-900">₹{Number(selectedOrder?.total ?? selectedOrder?.totalAmount ?? 0).toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Payment Method:</span>
@@ -570,13 +647,22 @@ export default function EnhancedOrdersPage() {
               </div>
 
               {/* Delivery Address */}
-              {selectedOrder?.deliveryAddress && (
+              {(selectedOrder?.deliveryAddress || selectedOrder?.addressSnapshot) && (
                 <div className="mt-6 bg-yellow-50 p-4 rounded-lg">
                   <h4 className="font-medium text-gray-900 mb-2 flex items-center">
                     <MapPin className="h-4 w-4 mr-2" />
                     Delivery Address
                   </h4>
-                  <p className="text-sm text-gray-700">{selectedOrder?.deliveryAddress}</p>
+                  <p className="text-sm text-gray-700">
+                    {selectedOrder?.deliveryAddress || (() => {
+                      try {
+                        const addr = JSON.parse(selectedOrder?.addressSnapshot || '{}');
+                        return `${addr.street || ''}, ${addr.city || ''}, ${addr.state || ''} - ${addr.pincode || ''}${addr.landmark ? ', Near ' + addr.landmark : ''}`;
+                      } catch {
+                        return selectedOrder?.addressSnapshot || 'N/A';
+                      }
+                    })()}
+                  </p>
                 </div>
               )}
             </div>

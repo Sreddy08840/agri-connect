@@ -65,7 +65,7 @@ export default function ProductsReviewPage() {
 
   // Socket: live updates
   useEffect(() => {
-    const sock = adminSocket.connect();
+    adminSocket.connect();
     adminSocket.joinAdminRoom();
 
     const onNew = () => {
@@ -321,7 +321,6 @@ export default function ProductsReviewPage() {
 
   return (
     <div className="space-y-6">
-
       {/* Filters */}
       <div className="bg-white rounded-lg shadow p-6">
         <form onSubmit={handleSearch} className="space-y-4">

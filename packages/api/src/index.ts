@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -25,6 +26,7 @@ import eventsRoutes from './routes/events';
 import recommendationsRoutes from './routes/recommendations';
 import warrantyRoutes from './routes/warranty';
 import reviewsRoutes from './routes/reviews';
+import aiRoutes from './routes/ai';
 
 const app = express();
 const server = createServer(app);
@@ -112,6 +114,7 @@ app.use('/api/events', eventsRoutes);
 app.use('/api/recommendations', recommendationsRoutes);
 app.use('/api/warranty', warrantyRoutes);
 app.use('/api/reviews', reviewsRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Socket.IO for real-time features
 io.on('connection', (socket) => {
