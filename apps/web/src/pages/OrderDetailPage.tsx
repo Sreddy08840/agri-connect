@@ -1,10 +1,11 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { useQuery } from 'react-query';
+import { useQuery, useMutation } from 'react-query';
 import { api } from '../lib/api';
 import socketService from '../lib/socket';
-import { ArrowLeft, Package, Clock, CheckCircle, Truck } from 'lucide-react';
+import { ArrowLeft, Package, Clock, CheckCircle, Truck, XCircle } from 'lucide-react';
 import RatingDialog from '../components/ui/RatingDialog';
+import toast from 'react-hot-toast';
 
 interface OrderItem {
   id: string;
@@ -43,10 +44,24 @@ export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const { data: order, isLoading, error } = useQuery<OrderDetail>(
+  const { data: order, isLoading, error, refetch } = useQuery<OrderDetail>(
     ['order', id],
     () => api.get(`/orders/${id}`).then(res => res.data),
     { enabled: Boolean(id), retry: 1 }
+  );
+
+  // Cancel order mutation
+  const cancelOrderMutation = useMutation(
+    () => api.post(`/orders/${id}/cancel`).then(res => res.data),
+    {
+      onSuccess: () => {
+        toast.success('Order cancelled successfully');
+        refetch();
+      },
+      onError: (error: any) => {
+        toast.error(error.response?.data?.message || 'Failed to cancel order');
+      }
+    }
   );
 
   // Live order state (updated via Socket.IO)
@@ -123,17 +138,33 @@ export default function OrderDetailPage() {
             </p>
             <p className="mt-2 text-lg font-bold text-gray-900">Total: ₹{((currentOrder || order)!.total || (currentOrder || order)!.totalAmount || 0).toFixed(2)}</p>
 
-            {/* Rate Farmer for delivered orders */}
-            {(currentOrder || order)!.status.toLowerCase() === 'delivered' && (currentOrder || order)!.farmer.id && (
-              <div className="mt-4">
+            <div className="mt-4 flex space-x-3">
+              {/* Cancel button - only show for orders that are not shipped or delivered */}
+              {!['SHIPPED', 'DELIVERED', 'CANCELLED'].includes((currentOrder || order)!.status.toUpperCase()) && (
+                <button
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to cancel this order?')) {
+                      cancelOrderMutation.mutate();
+                    }
+                  }}
+                  disabled={cancelOrderMutation.isLoading}
+                  className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-lg font-semibold flex items-center"
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  {cancelOrderMutation.isLoading ? 'Cancelling...' : 'Cancel Order'}
+                </button>
+              )}
+
+              {/* Rate Farmer for delivered orders */}
+              {(currentOrder || order)!.status.toLowerCase() === 'delivered' && (currentOrder || order)!.farmer.id && (
                 <RatingDialog
                   farmerId={(currentOrder || order)!.farmer.id}
                   farmerName={(currentOrder || order)!.farmer.businessName || (currentOrder || order)!.farmer.user?.name || 'Farmer'}
                   triggerClassName="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg font-semibold"
                   triggerLabel="Rate Farmer"
                 />
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">

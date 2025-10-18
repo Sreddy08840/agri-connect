@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import os
 import pandas as pd
@@ -41,6 +42,33 @@ app = FastAPI(title="Agri-Connect ML Service", lifespan=lifespan)
 prod_df = None
 tfidf = None
 tfidf_matrix = None
+
+
+@app.get("/")
+def root():
+    """Root endpoint with service information."""
+    return {
+        "service": "Agri-Connect ML Service",
+        "version": "1.0.0",
+        "status": "running",
+        "endpoints": {
+            "recommendations": "/recommendations?userId={userId}&n={n}",
+            "refresh": "/refresh (POST)",
+            "health": "/health"
+        }
+    }
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """Handle favicon requests to prevent 404 errors."""
+    return JSONResponse(status_code=204, content=None)
+
+
+@app.get("/.well-known/appspecific/com.chrome.devtools.json", include_in_schema=False)
+async def chrome_devtools():
+    """Handle Chrome DevTools requests to prevent 404 errors."""
+    return JSONResponse(status_code=204, content=None)
 
 def load_products():
     global prod_df, tfidf, tfidf_matrix

@@ -76,13 +76,13 @@ export default function MainLayout() {
                   </NavLink>
                   <NavLink to="/messages" className={({isActive}) => `flex items-center space-x-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${isActive ? 'bg-farmer-green-600 text-white shadow-md' : 'text-gray-700 hover:bg-gray-100 hover:text-farmer-green-600'}`}>
                     <MessageCircle className="h-4 w-4" />
-                    <span>Messages</span>
+                    <span>{t('nav.messages')}</span>
                   </NavLink>
                 </>
               )}
               <NavLink to="/help" className={({isActive}) => `flex items-center space-x-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${isActive ? 'bg-farmer-green-600 text-white shadow-md' : 'text-gray-700 hover:bg-gray-100 hover:text-farmer-green-600'}`}>
                 <HelpCircle className="h-4 w-4" />
-                <span>Help</span>
+                <span>{t('nav.help')}</span>
               </NavLink>
               {user?.role === 'FARMER' && (
                 <NavLink to="/farmer" className={({isActive}) => `px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${isActive ? 'bg-farmer-green-600 text-white shadow-md' : 'text-gray-700 hover:bg-gray-100 hover:text-farmer-green-600'}`}>
@@ -96,7 +96,7 @@ export default function MainLayout() {
               <LanguageSwitcher />
               
               {/* Cart */}
-              <Link to="/cart" className="relative p-3 text-gray-600 hover:text-farmer-green-600 hover:bg-farmer-green-50 rounded-xl transition-all duration-200 group">
+              <Link to="/cart" className="relative p-3 text-gray-600 hover:text-farmer-green-600 hover:bg-farmer-green-50 rounded-xl transition-all duration-200 group" title={t('tooltips.cart')}>
                 <ShoppingCart className="h-5 w-5 group-hover:scale-110 transition-transform" />
                 {getTotalItems() > 0 && (
                   <span className="absolute -top-1 -right-1 bg-gradient-to-br from-red-500 to-red-600 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold shadow-lg animate-pulse">
@@ -127,7 +127,7 @@ export default function MainLayout() {
                   <button 
                     className="p-3 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200"
                     onClick={handleLogout}
-                    title="Logout"
+                    title={t('tooltips.logout')}
                   >
                     <LogOut className="h-5 w-5" />
                   </button>
@@ -140,7 +140,7 @@ export default function MainLayout() {
                       onClick={() => setLoginDropdownOpen(!loginDropdownOpen)}
                       className="flex items-center space-x-1 px-5 py-2.5 text-gray-700 hover:text-farmer-green-600 font-semibold rounded-xl hover:bg-gray-100 transition-all duration-200"
                     >
-                      <span>Login</span>
+                      <span>{t('login')}</span>
                       <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${loginDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
                     
@@ -155,8 +155,8 @@ export default function MainLayout() {
                             <User className="h-5 w-5 text-farmer-green-600" />
                           </div>
                           <div>
-                            <div className="font-semibold text-gray-900">Customer</div>
-                            <div className="text-xs text-gray-500">Shop for produce</div>
+                            <div className="font-semibold text-gray-900">{t('roles.customer')}</div>
+                            <div className="text-xs text-gray-500">{t('header.customerLoginSubtitle')}</div>
                           </div>
                         </Link>
                         
@@ -171,8 +171,8 @@ export default function MainLayout() {
                             <Tractor className="h-5 w-5 text-farmer-yellow-600" />
                           </div>
                           <div>
-                            <div className="font-semibold text-gray-900">Farmer</div>
-                            <div className="text-xs text-gray-500">Manage your farm</div>
+                            <div className="font-semibold text-gray-900">{t('roles.farmer')}</div>
+                            <div className="text-xs text-gray-500">{t('header.farmerLoginSubtitle')}</div>
                           </div>
                         </Link>
                       </div>
@@ -185,7 +185,7 @@ export default function MainLayout() {
                       onClick={() => setSignUpDropdownOpen(!signUpDropdownOpen)}
                       className="flex items-center space-x-1 px-5 py-2.5 bg-farmer-green-600 text-white font-semibold rounded-xl hover:bg-farmer-green-700 transition-all duration-200 shadow-md hover:shadow-lg"
                     >
-                      <span>Sign Up</span>
+                      <span>{t('signUp')}</span>
                       <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${signUpDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
                     
@@ -200,8 +200,8 @@ export default function MainLayout() {
                             <UserPlus className="h-5 w-5 text-farmer-green-600" />
                           </div>
                           <div>
-                            <div className="font-semibold text-gray-900">Customer</div>
-                            <div className="text-xs text-gray-500">Buy fresh produce</div>
+                            <div className="font-semibold text-gray-900">{t('roles.customer')}</div>
+                            <div className="text-xs text-gray-500">{t('header.customerSignUpSubtitle')}</div>
                           </div>
                         </Link>
                         
@@ -216,8 +216,8 @@ export default function MainLayout() {
                             <Tractor className="h-5 w-5 text-farmer-yellow-600" />
                           </div>
                           <div>
-                            <div className="font-semibold text-gray-900">Farmer</div>
-                            <div className="text-xs text-gray-500">Sell your products</div>
+                            <div className="font-semibold text-gray-900">{t('roles.farmer')}</div>
+                            <div className="text-xs text-gray-500">{t('header.farmerSignUpSubtitle')}</div>
                           </div>
                         </Link>
                       </div>
@@ -269,7 +269,7 @@ export default function MainLayout() {
                     className={({isActive}) => `block px-4 py-3 rounded-xl text-sm font-semibold transition-all ${isActive ? 'bg-farmer-green-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Messages
+                    {t('nav.messages')}
                   </NavLink>
                 </>
               )}
@@ -278,7 +278,7 @@ export default function MainLayout() {
                 className={({isActive}) => `block px-4 py-3 rounded-xl text-sm font-semibold transition-all ${isActive ? 'bg-farmer-green-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Help
+                {t('nav.help')}
               </NavLink>
               {user?.role === 'FARMER' && (
                 <NavLink 
@@ -292,7 +292,7 @@ export default function MainLayout() {
               {!user && (
                 <>
                   <div className="px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Login As
+                    {t('header.loginAs')}
                   </div>
                   
                   <Link 
@@ -302,8 +302,8 @@ export default function MainLayout() {
                   >
                     <User className="h-5 w-5" />
                     <div>
-                      <div className="font-semibold">Customer</div>
-                      <div className="text-xs text-gray-600">Shop for produce</div>
+                      <div className="font-semibold">{t('roles.customer')}</div>
+                      <div className="text-xs text-gray-600">{t('header.customerLoginSubtitle')}</div>
                     </div>
                   </Link>
                   
@@ -314,13 +314,13 @@ export default function MainLayout() {
                   >
                     <Tractor className="h-5 w-5" />
                     <div>
-                      <div className="font-semibold">Farmer</div>
-                      <div className="text-xs text-gray-600">Manage your farm</div>
+                      <div className="font-semibold">{t('roles.farmer')}</div>
+                      <div className="text-xs text-gray-600">{t('header.farmerLoginSubtitle')}</div>
                     </div>
                   </Link>
                   
                   <div className="px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Sign Up As
+                    {t('header.signUpAs')}
                   </div>
                   
                   <Link 
@@ -330,8 +330,8 @@ export default function MainLayout() {
                   >
                     <UserPlus className="h-5 w-5" />
                     <div>
-                      <div className="font-semibold">Customer</div>
-                      <div className="text-xs text-gray-600">Buy fresh produce</div>
+                      <div className="font-semibold">{t('roles.customer')}</div>
+                      <div className="text-xs text-gray-600">{t('header.customerSignUpSubtitle')}</div>
                     </div>
                   </Link>
                   
@@ -342,8 +342,8 @@ export default function MainLayout() {
                   >
                     <Tractor className="h-5 w-5" />
                     <div>
-                      <div className="font-semibold">Farmer</div>
-                      <div className="text-xs text-gray-600">Sell your products</div>
+                      <div className="font-semibold">{t('roles.farmer')}</div>
+                      <div className="text-xs text-gray-600">{t('header.farmerSignUpSubtitle')}</div>
                     </div>
                   </Link>
                 </>

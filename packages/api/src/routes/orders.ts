@@ -44,6 +44,9 @@ router.get('/my', authenticateToken, async (req: AuthenticatedRequest, res) => {
     const where: any = {};
     if (req.user!.role === 'CUSTOMER') where.customerId = req.user!.userId;
     if (req.user!.role === 'FARMER') where.farmerId = req.user!.userId;
+    
+    // Get user ID for review check
+    const userId = req.user!.userId;
 
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
@@ -54,6 +57,27 @@ router.get('/my', authenticateToken, async (req: AuthenticatedRequest, res) => {
       }),
       prisma.order.count({ where }),
     ]);
+    
+    // Check if orders have been reviewed (for customers only)
+    if (req.user!.role === 'CUSTOMER') {
+      const orderIds = orders.map(order => order.id);
+      const reviewedOrders = await prisma.productReview.findMany({
+        where: {
+          userId,
+          orderId: { in: orderIds }
+        },
+        select: {
+          orderId: true
+        }
+      });
+      
+      const reviewedOrderIds = new Set(reviewedOrders.map(review => review.orderId));
+      
+      // Add reviewed flag to each order
+      orders.forEach(order => {
+        (order as any).reviewed = reviewedOrderIds.has(order.id);
+      });
+    }
 
     res.json({
       orders,
@@ -228,6 +252,43 @@ router.post('/:id/confirm', authenticateToken, requireCustomer, async (req: Auth
   }
 });
 
+// Cancel order (customer) - only allowed before order is shipped
+router.post('/:id/cancel', authenticateToken, requireCustomer, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { id } = req.params;
+    const order = await prisma.order.findUnique({ where: { id } });
+    
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    if (order.customerId !== req.user!.userId) return res.status(403).json({ error: 'Not authorized' });
+    
+    // Check if order can be cancelled (only before shipping)
+    if (['SHIPPED', 'DELIVERED'].includes(order.status)) {
+      return res.status(400).json({ 
+        error: 'Cannot cancel order', 
+        message: 'Orders cannot be cancelled after they have been shipped' 
+      });
+    }
+    
+    const updated = await prisma.order.update({ where: { id }, data: { status: 'CANCELLED' } });
+    try { io.to(`order:${id}`).emit('order-update', updated); } catch {}
+    
+    // Send notification to farmer about cancellation
+    try {
+      io.to(`farmer:${order.farmerId}`).emit('order-cancelled', {
+        orderId: order.id,
+        message: 'An order has been cancelled by the customer'
+      });
+    } catch (e) {
+      console.error('Failed to send cancellation notification:', e);
+    }
+    
+    res.json(updated);
+  } catch (error) {
+    console.error('Cancel order error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Get order by ID
 router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
@@ -278,6 +339,38 @@ router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res) => 
       });
       if (!farmerProfile || order.farmerId !== farmerProfile.id) {
         return res.status(403).json({ error: 'Not authorized to access this order' });
+      }
+    }
+    
+    // If customer is viewing their own order, check if they've already reviewed all products
+    if (req.user?.role === 'CUSTOMER' && order) {
+      // Get all product IDs from order items
+      const productIds = order.items.map(item => item.product.id);
+      
+      if (productIds.length > 0) {
+        // Find all reviews by this user for these products
+        const reviews = await prisma.productReview.findMany({
+          where: {
+            userId: req.user.userId,
+            productId: { in: productIds }
+          },
+          select: {
+            productId: true
+          }
+        });
+        
+        const reviewedProductIds = new Set(reviews.map(r => r.productId));
+        
+        // Mark each item as reviewed or not
+        order.items = order.items.map(item => ({
+          ...item,
+          reviewed: reviewedProductIds.has(item.product.id)
+        }));
+        
+        // Add a flag to indicate if all products in the order have been reviewed
+        (order as any).reviewed = reviewedProductIds.size >= productIds.length;
+      } else {
+        (order as any).reviewed = false;
       }
     }
 

@@ -154,18 +154,27 @@ importers:
       expo-linear-gradient:
         specifier: ~12.7.0
         version: 12.7.2(expo@50.0.21)
+      expo-localization:
+        specifier: ~14.8.3
+        version: 14.8.4(expo@50.0.21)
       expo-splash-screen:
         specifier: ~0.26.1
         version: 0.26.5(expo-modules-autolinking@1.11.3)(expo@50.0.21)
       expo-status-bar:
         specifier: ~1.11.1
         version: 1.11.1
+      i18next:
+        specifier: ^23.7.6
+        version: 23.16.8
       react:
         specifier: 18.2.0
         version: 18.2.0
       react-hook-form:
         specifier: ^7.48.2
         version: 7.62.0(react@18.2.0)
+      react-i18next:
+        specifier: ^13.5.0
+        version: 13.5.0(i18next@23.16.8)(react-native@0.73.0)(react@18.2.0)
       react-native:
         specifier: 0.73.0
         version: 0.73.0(@babel/core@7.28.4)(@babel/preset-env@7.28.3)(react@18.2.0)
@@ -8234,6 +8243,15 @@ packages:
       expo: 50.0.21(@babel/core@7.28.4)(@react-native/babel-preset@0.74.87)(react-native@0.73.0)(react@18.2.0)
     dev: false
 
+  /expo-localization@14.8.4(expo@50.0.21):
+    resolution: {integrity: sha512-WWcG6Bg9s8p9wk5BvdXfxBLCEcvzS75O+nN5O+kWA3+cGDKcbfvExWmXcCSz8hn8y8rRVIEx8wwSgysMTtptUA==}
+    peerDependencies:
+      expo: '*'
+    dependencies:
+      expo: 50.0.21(@babel/core@7.28.4)(@react-native/babel-preset@0.74.87)(react-native@0.73.0)(react@18.2.0)
+      rtl-detect: 1.1.2
+    dev: false
+
   /expo-modules-autolinking@1.10.3:
     resolution: {integrity: sha512-pn4n2Dl4iRh/zUeiChjRIe1C7EqOw1qhccr85viQV7W6l5vgRpY0osE51ij5LKg/kJmGRcJfs12+PwbdTplbKw==}
     hasBin: true
@@ -11957,6 +11975,26 @@ packages:
       react-dom: 18.3.1(react@18.2.0)
     dev: false
 
+  /react-i18next@13.5.0(i18next@23.16.8)(react-native@0.73.0)(react@18.2.0):
+    resolution: {integrity: sha512-CFJ5NDGJ2MUyBohEHxljOq/39NQ972rh1ajnadG9BjTk+UXbHLq4z5DKEbEQBDoIhUmmbuS/fIMJKo6VOax1HA==}
+    peerDependencies:
+      i18next: '>= 23.2.3'
+      react: 18.2.0
+      react-dom: '*'
+      react-native: '*'
+    peerDependenciesMeta:
+      react-dom:
+        optional: true
+      react-native:
+        optional: true
+    dependencies:
+      '@babel/runtime': 7.28.4
+      html-parse-stringify: 3.0.1
+      i18next: 23.16.8
+      react: 18.2.0
+      react-native: 0.73.0(@babel/core@7.28.4)(@babel/preset-env@7.28.3)(react@18.2.0)
+    dev: false
+
   /react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
 
@@ -12588,6 +12626,10 @@ packages:
       '@rollup/rollup-win32-x64-msvc': 4.50.0
       fsevents: 2.3.3
     dev: true
+
+  /rtl-detect@1.1.2:
+    resolution: {integrity: sha512-PGMBq03+TTG/p/cRB7HCLKJ1MgDIi07+QU1faSjiYRfmY5UsAttV9Hs08jDAHVwcOwmVLcSJkpwyfXszVjWfIQ==}
+    dev: false
 
   /run-parallel@1.2.0:
     resolution: {integrity: sha512-5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA==}

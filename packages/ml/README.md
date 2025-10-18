@@ -37,12 +37,12 @@ pip install -r requirements.txt
 
 3. Run the service:
 ```bash
-uvicorn main:app --reload
+ python3.13 -m uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
 Or for production:
 ```bash
-uvicorn main:app --host 0.0.0.0 --port 8000
+ python3.13 -m uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
 ### Docker

@@ -17,13 +17,13 @@ interface ProductReviewFormProps {
   onSuccess?: () => void;
 }
 
-export const ProductReviewForm: React.FC<ProductReviewFormProps> = ({
+export function ProductReviewForm({
   productId,
   productName,
   existingReview,
   onClose,
   onSuccess,
-}) => {
+}: ProductReviewFormProps) {
   const [rating, setRating] = useState(existingReview?.rating || 0);
   const [comment, setComment] = useState(existingReview?.comment || '');
   const queryClient = useQueryClient();

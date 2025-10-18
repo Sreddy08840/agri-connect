@@ -132,3 +132,16 @@ Desktop.ini
 # Temporary files
 *.tmp
 *.temp
+
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Project-specific ignore patterns
+structure.txt
+*.tgz
+
+# IDE/Tool cache directories
+.qodo/

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { CustomerStackParamList } from '../../navigation/types';
 import { api } from '../../lib/api';
 import Card from '../../components/ui/Card';
+import Button from '../../components/ui/Button';
 import LoadingScreen from '../../components/ui/LoadingScreen';
 
 type Props = {
@@ -16,6 +17,7 @@ const OrderDetailScreen: React.FC<Props> = ({ route }) => {
   const { orderId } = route.params;
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     fetchOrder();
@@ -30,6 +32,32 @@ const OrderDetailScreen: React.FC<Props> = ({ route }) => {
     } finally {
       setLoading(false);
     }
+  };
+  
+  const cancelOrder = async () => {
+    Alert.alert(
+      "Cancel Order",
+      "Are you sure you want to cancel this order?",
+      [
+        { text: "No", style: "cancel" },
+        { 
+          text: "Yes", 
+          onPress: async () => {
+            try {
+              setCancelling(true);
+              await api.post(`/orders/${orderId}/cancel`);
+              Alert.alert("Success", "Order cancelled successfully");
+              fetchOrder(); // Refresh order data
+            } catch (error: any) {
+              const errorMessage = error.response?.data?.message || 'Failed to cancel order';
+              Alert.alert("Error", errorMessage);
+            } finally {
+              setCancelling(false);
+            }
+          }
+        }
+      ]
+    );
   };
 
   if (loading) return <LoadingScreen />;
@@ -72,6 +100,22 @@ const OrderDetailScreen: React.FC<Props> = ({ route }) => {
           <Text style={styles.addressText}>{order.deliveryAddress.pincode}</Text>
         </Card>
       )}
+
+      {/* Cancel Order Button - Only show for orders that are not shipped or delivered */}
+      {!['SHIPPED', 'DELIVERED', 'CANCELLED'].includes(order.status.toUpperCase()) && (
+        <Card style={styles.card}>
+          <Button 
+            title={cancelling ? "Cancelling..." : "Cancel Order"} 
+            onPress={cancelOrder}
+            disabled={cancelling}
+            style={styles.cancelButton}
+            textStyle={styles.cancelButtonText}
+          />
+          <Text style={styles.cancelNote}>
+            Note: Orders cannot be cancelled after they have been shipped
+          </Text>
+        </Card>
+      )}
     </ScrollView>
   );
 };
@@ -92,6 +136,9 @@ const styles = StyleSheet.create({
   totalLabel: { fontSize: 18, fontWeight: '700', color: '#111827' },
   totalAmount: { fontSize: 20, fontWeight: '700', color: '#10B981' },
   addressText: { fontSize: 14, color: '#374151', marginBottom: 4 },
+  cancelButton: { backgroundColor: '#EF4444', marginBottom: 8 },
+  cancelButtonText: { color: '#FFFFFF', fontWeight: '600' },
+  cancelNote: { fontSize: 12, color: '#6B7280', textAlign: 'center', fontStyle: 'italic' },
 });
 
 export default OrderDetailScreen;

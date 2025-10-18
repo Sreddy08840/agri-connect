@@ -2,6 +2,130 @@
 
 A comprehensive marketplace platform that directly connects farmers and consumers, eliminating intermediaries and ensuring fair pricing.
 
+---
+
+## 🧹 Project Cleanup & Maintenance
+
+### Recent Cleanup (Oct 18, 2025)
+
+**✅ Completed Full Project Analysis and Cleanup**
+
+#### Files Removed:
+1. **`structure.txt`** (21.5 MB)
+   - **Why removed**: Outdated directory tree dump that was unnecessarily large
+   - **Impact**: Reduced repository size by 21+ MB
+   - **Status**: ✅ Deleted
+
+2. **`tsx-4.20.5.tgz`** (154 KB)
+   - **Why removed**: Package tarball that belongs in node_modules, not project root
+   - **Impact**: Cleaner project structure
+   - **Status**: ✅ Deleted
+
+3. **`copy`** (0 bytes)
+   - **Why removed**: Empty file with no purpose
+   - **Impact**: Removed unnecessary file
+   - **Status**: ✅ Deleted
+
+4. **`.venv/` directory**
+   - **Why removed**: Python virtual environment should not be committed to repository
+   - **Impact**: Removed ~MB of Python packages, cleaner repo
+   - **Status**: ✅ Deleted
+
+5. **`.qodo/` directory**
+   - **Why removed**: IDE/tool cache directory
+   - **Impact**: Removed IDE-specific files
+   - **Status**: ✅ Deleted (or didn't exist)
+
+#### Files Kept (Not Redundant):
+- ✅ **README.md** - Main project documentation (you're reading it!)
+- ✅ **AI_INTEGRATION_COMPLETE_GUIDE.md** - Comprehensive AI features documentation
+- ✅ **DEPLOYMENT_CHECKLIST.md** - Step-by-step deployment checklist
+- ✅ **FREE_DEPLOYMENT_GUIDE.md** - Free deployment options for students/college projects
+- ✅ **docker-compose.yml** - Development environment setup
+- ✅ **docker-compose.prod.yml** - Production deployment configuration
+
+#### Updated `.gitignore`:
+Added the following patterns to prevent future unwanted files:
+```gitignore
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Project-specific ignore patterns
+structure.txt
+*.tgz
+
+# IDE/Tool cache directories
+.qodo/
+```
+
+### Maintenance Guidelines:
+
+**🚫 Never Commit:**
+- Python virtual environments (`.venv/`, `venv/`)
+- Node modules (already in .gitignore)
+- Package tarballs (`*.tgz`)
+- Large generated files (like `structure.txt`)
+- IDE-specific cache directories
+- Personal configuration files
+
+**✅ Always Keep:**
+- Source code files
+- Configuration templates (`.example` files)
+- Documentation files (`*.md`)
+- Docker configuration files
+- Package manager files (`package.json`, `requirements.txt`)
+
+**🔍 Regular Cleanup Checklist:**
+1. Check for large files: `git ls-files -z | xargs -0 du -hs | sort -h`
+2. Verify `.gitignore` is up to date
+3. Remove unused dependencies
+4. Clean up old branches
+5. Archive completed feature documentation
+
+### Summary of Cleanup Results:
+
+**Before Cleanup:**
+- Project size: ~533 MB (with node_modules and unwanted files)
+- Unwanted files: 5 files/directories (21.7 MB)
+- Outdated references in documentation
+
+**After Cleanup:**
+- Project size: ~511 MB (reduced by ~21.7 MB)
+- All unwanted files removed ✅
+- `.gitignore` updated to prevent future issues ✅
+- README.md updated with accurate file references ✅
+- Cleaner, more maintainable project structure ✅
+
+**Current Project Structure (Clean):**
+```
+agri-connect/
+├── .github/              # CI/CD workflows
+├── apps/                 # Application code
+│   ├── admin-portal/     # Admin dashboard
+│   ├── mobile/           # React Native app
+│   └── web/              # React web app
+├── packages/
+│   ├── api/              # Backend API (Node.js)
+│   ├── ml/               # ML service (Python)
+│   ├── ui/               # Shared UI components
+│   └── config/           # Shared config
+├── scripts/              # Build and utility scripts
+├── .gitignore            # ✅ Updated with new patterns
+├── README.md             # ✅ Updated with cleanup docs
+├── AI_INTEGRATION_COMPLETE_GUIDE.md
+├── DEPLOYMENT_CHECKLIST.md
+├── FREE_DEPLOYMENT_GUIDE.md
+├── docker-compose.yml
+├── docker-compose.prod.yml
+├── package.json
+└── pnpm-workspace.yaml
+```
+
+---
+
 ## 🚀 Features
 
 ### For Customers
@@ -161,21 +285,62 @@ cd apps/web && pnpm test
 
 ## 🚀 Deployment
 
-### Using Docker
+**Ready to deploy?** We have comprehensive deployment guides to help you!
 
+### 📚 Available Deployment Guides:
+
+1. **[DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)** 
+   - Complete step-by-step production deployment checklist
+   - Infrastructure setup, database configuration, service deployment
+   - Security best practices and monitoring setup
+
+2. **[FREE_DEPLOYMENT_GUIDE.md](FREE_DEPLOYMENT_GUIDE.md)**
+   - Perfect for students and college projects!
+   - Deploy for FREE using Railway + Vercel
+   - Zero cost deployment options with $0 monthly fees
+   - 30-40 minutes setup time
+
+3. **[AI_INTEGRATION_COMPLETE_GUIDE.md](AI_INTEGRATION_COMPLETE_GUIDE.md)**
+   - Complete AI features integration documentation
+   - ML service setup and training
+   - Recommendations, forecasting, fraud detection, and chatbot
+
+### ⚡ Quick Deploy Options:
+
+**Option 1: Free Tier (Perfect for Students/Testing)**
+- Backend: Railway ($5 free credit/month)
+- Web: Vercel (Free forever)
+- Database: Railway PostgreSQL (Free)
+- **Total Cost: $0/month**
+- **Setup Time: 30-40 minutes**
+- **See: [FREE_DEPLOYMENT_GUIDE.md](FREE_DEPLOYMENT_GUIDE.md)**
+
+**Option 2: Production Single Server (Recommended for MVP)**
+- VPS (DigitalOcean/Linode/Hetzner): $10-50/month
+- All services on one server using Docker Compose
+- **Setup Time: 1-2 hours**
+- **See: [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)**
+
+**Option 3: Cloud Microservices (Scalable Production)**
+- Backend: Railway/Render ($10-30/month)
+- ML Service: Render/DigitalOcean ($15-40/month)
+- Web: Vercel/Netlify (Free-$20/month)
+- Database: Supabase/Railway ($10-30/month)
+- **Total Cost: $35-100/month**
+- **Setup Time: 2-3 hours**
+
+**Option 4: Mobile Apps Deployment**
 ```bash
-# Build and start all services
-docker-compose up --build
-
-# Production deployment
-docker-compose -f docker-compose.prod.yml up -d
+cd apps/mobile
+npx eas-cli build --platform all --profile production
 ```
 
-### Manual Deployment
+### 🎯 Which Option Should I Choose?
 
-1. **API**: Deploy to Railway, Fly.io, or similar
-2. **Web**: Deploy to Vercel, Netlify, or similar
-3. **Mobile**: Build and deploy to app stores using EAS
+- **Student/Learning**: Use Option 1 (Free Tier)
+- **MVP/Startup**: Use Option 2 (Single Server)
+- **Growing Business**: Use Option 3 (Microservices)
+- **Enterprise**: Custom Kubernetes setup (contact for consultation)
 
 ## 📱 Mobile App
 

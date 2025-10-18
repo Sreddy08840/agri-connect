@@ -10,7 +10,9 @@
     "logout": "Logout",
     "farmerPortal": "Farmer Portal",
     "adminDashboard": "Admin Dashboard",
-    "joinAsFarmer": "🚜 Join as Farmer"
+    "joinAsFarmer": "🚜 Join as Farmer",
+    "messages": "Messages",
+    "help": "Help"
   },
   "landing": {
     "heroTitle": "Connect Directly with Farmers",
@@ -66,7 +68,10 @@
     "priceDesc": "Price: High to Low",
     "ratingSort": "Rating",
     "noProducts": "No products found",
-    "loadMore": "Load More"
+    "loadMore": "Load More",
+    "perUnit": "per {{unit}}",
+    "addedToCart": "{{name}} added to cart",
+    "isOutOfStock": "{{name}} is out of stock"
   },
   "cart": {
     "title": "Shopping Cart",
@@ -160,6 +165,18 @@
     "approve": "Approve",
     "reject": "Reject"
   },
+  "header": {
+    "loginAs": "Login As",
+    "signUpAs": "Sign Up As",
+    "customerLoginSubtitle": "Shop for produce",
+    "farmerLoginSubtitle": "Manage your farm",
+    "customerSignUpSubtitle": "Buy fresh produce",
+    "farmerSignUpSubtitle": "Sell your products"
+  },
+  "roles": {
+    "customer": "Customer",
+    "farmer": "Farmer"
+  },
   "common": {
     "loading": "Loading...",
     "error": "Error",
@@ -184,5 +201,24 @@
     "previous": "Previous",
     "close": "Close",
     "open": "Open"
+  },
+  "footer": {
+    "tagline": "Empowering Karnataka farmers with technology-driven trading solutions. Connect, trade, and grow with Agri Connect.",
+    "support": "Support",
+    "helpCenter": "Help Center",
+    "privacyPolicy": "Privacy Policy",
+    "termsConditions": "Terms & Conditions",
+    "faq": "FAQ",
+    "contactSupport": "Contact Support",
+    "contactInfo": "Contact Info",
+    "location": "Bengaluru, Karnataka",
+    "copyright": "© 2025 Agri Connect. All rights reserved.",
+    "empoweringFarmers": "Empowering Karnataka Farmers"
+  },
+  "tooltips": {
+    "logout": "Logout",
+    "cart": "View Cart",
+    "profile": "View Profile",
+    "changeLanguage": "Change Language"
   }
 }

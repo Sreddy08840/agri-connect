@@ -13,6 +13,7 @@ type OrderItem = {
     name: string;
     images?: string[];
   };
+  reviewed?: boolean;
 };
 
 type Order = {
@@ -165,7 +166,7 @@ export default function OrdersPage() {
                     <Eye className="h-4 w-4" />
                     <span>View Details</span>
                   </button>
-                  {order.status.toLowerCase() === 'delivered' && (
+                  {order.status.toLowerCase() === 'delivered' && !order.reviewed && (
                     <button
                       className="px-3 py-1 bg-farmer-green-600 text-white hover:bg-farmer-green-700 rounded text-sm font-medium flex items-center space-x-1 transition-colors"
                       onClick={() => {
@@ -210,7 +211,7 @@ export default function OrdersPage() {
                     <span className="text-sm text-gray-700">
                       {item.product.name} x{item.qty}
                     </span>
-                    {order.status.toLowerCase() === 'delivered' && (
+                    {order.status.toLowerCase() === 'delivered' && (!item.reviewed) && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -244,6 +245,10 @@ export default function OrdersPage() {
           productId={reviewingProduct.id}
           productName={reviewingProduct.name}
           onClose={() => setReviewingProduct(null)}
+          onSuccess={() => {
+            // Refresh orders to update the reviewed status
+            queryClient.invalidateQueries('orders');
+          }}
         />
       )}
     </div>

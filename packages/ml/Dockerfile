@@ -1,28 +1,39 @@
-FROM python:3.11-slim
+# Use a smaller base image with Python 3.11
+FROM python:3.11-slim-bookworm
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_DEFAULT_TIMEOUT=100
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gfortran \
+    libatlas-base-dev \
+    libgomp1 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
-
 # Copy requirements first for better caching
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+
+# Install Python dependencies (ensure PyTorch CPU wheels are available)
+RUN pip install torch==2.2.1 --index-url https://download.pytorch.org/whl/cpu && pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY app/ ./app/
-COPY training/ ./training/
-COPY notebooks/ ./notebooks/
+COPY . .
 
-# Create directories for models and vectors
+# Create necessary directories
 RUN mkdir -p models vectors
 
 # Set environment variables
-ENV PYTHONUNBUFFERED=1
-ENV MODEL_DIR=/app/models
-ENV VECTOR_INDEX_DIR=/app/vectors
+ENV MODEL_DIR=/app/models \
+    VECTOR_INDEX_DIR=/app/vectors
 
 # Expose port
 EXPOSE 8000
@@ -32,4 +43,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD python -c "import requests; requests.get('http://localhost:8000/health')"
 
 # Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]

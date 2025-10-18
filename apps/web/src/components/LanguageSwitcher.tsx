@@ -4,7 +4,8 @@ import { Globe, ChevronDown } from 'lucide-react';
 
 const languages = [
   { code: 'en', name: 'English', flag: '🇺🇸' },
-  { code: 'kn', name: 'ಕನ್ನಡ', flag: '🇮🇳' }
+  { code: 'kn', name: 'ಕನ್ನಡ', flag: '🇮🇳' },
+  { code: 'hi', name: 'हिन्दी', flag: '🇮🇳' }
 ];
 
 export default function LanguageSwitcher() {
