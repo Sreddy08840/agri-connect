@@ -145,3 +145,4 @@ structure.txt
 
 # IDE/Tool cache directories
 .qodo/
+.vercel

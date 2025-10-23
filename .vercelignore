@@ -1,0 +1,33 @@
+# Ignore everything
+**/*
+
+# Except these
+!apps/web/**/*
+!packages/ui/**/*
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!vercel.json
+
+# Exclude development and test files
+**/node_modules
+**/.git
+**/.github
+**/.vscode
+**/*.md
+**/*.log
+**/test
+**/tests
+**/__tests__
+**/coverage
+**/cypress
+**/e2e
+**/dist
+!apps/web/dist
+
+# Ignore ML and other heavy packages
+packages/ml/
+packages/api/
+scripts/
+**/*.sqlite
+**/*.sqlite3

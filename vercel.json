@@ -1,0 +1,14 @@
+{
+  "buildCommand": "cd apps/web && pnpm install && pnpm build",
+  "outputDirectory": "apps/web/dist",
+  "installCommand": "pnpm install --filter web...",
+  "framework": "vite",
+  "regions": ["bom1"],
+  "builds": [
+    { "src": "apps/web/package.json", "use": "@vercel/static-build" }
+  ],
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/.*", "dest": "/index.html" }
+  ]
+}

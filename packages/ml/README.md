@@ -42,7 +42,7 @@ pip install -r requirements.txt
 
 Or for production:
 ```bash
- python3.13 -m uvicorn main:app --host 0.0.0.0 --port 8000
+uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
 ### Docker
