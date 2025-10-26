@@ -202,7 +202,7 @@ export default function FarmerProfilePage() {
   };
 
   const handleFilterByMonth = () => {
-    toast.info('Filtering by current month...');
+    toast('Filtering by current month...', { icon: 'ℹ️' });
     // TODO: Implement month filtering
   };
 
@@ -216,7 +216,7 @@ export default function FarmerProfilePage() {
   // Live updates for product status
   useEffect(() => {
     if (!user?.id) return;
-    const sock = socketService.connect();
+    socketService.connect();
     socketService.joinFarmerRoom(user.id);
 
     const onStatus = () => {
@@ -740,7 +740,7 @@ export default function FarmerProfilePage() {
                     variant="outline" 
                     icon={<Filter className="h-4 w-4" />}
                     tooltip="Filter orders"
-                    onClick={() => toast.info('Filter functionality coming soon...')}
+                    onClick={() => toast('Filter functionality coming soon...', { icon: 'ℹ️' })}
                   />
                   <IconButton 
                     variant="outline" 

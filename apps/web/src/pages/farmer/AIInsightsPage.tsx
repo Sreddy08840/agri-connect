@@ -6,7 +6,8 @@ import { TrendingUp, DollarSign, Package, Star, Activity, Loader2 } from 'lucide
 import toast from 'react-hot-toast';
 
 export default function AIInsightsPage() {
-  const { token, user } = useAuthStore();
+  const { user } = useAuthStore();
+  const token = localStorage.getItem('accessToken');
   const [analytics, setAnalytics] = useState<FarmerAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<string>('');

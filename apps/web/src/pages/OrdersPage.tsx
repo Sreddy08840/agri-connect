@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from 'react-query';
+import { useQuery, useQueryClient } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Package, Clock, CheckCircle, Truck, Eye, Shield, Star } from 'lucide-react';
@@ -13,7 +13,6 @@ type OrderItem = {
     name: string;
     images?: string[];
   };
-  reviewed?: boolean;
 };
 
 type Order = {
@@ -26,6 +25,7 @@ type Order = {
     businessName?: string | null;
     user?: { name?: string | null } | null;
   };
+  reviewed?: boolean;
 };
 
 const getStatusIcon = (status: string) => {
@@ -62,6 +62,7 @@ const getStatusColor = (status: string) => {
 
 export default function OrdersPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [reviewingProduct, setReviewingProduct] = useState<{ id: string; name: string } | null>(null);
 
   const { data: response, isLoading, error } = useQuery<{ orders: Order[] }>(
@@ -211,7 +212,7 @@ export default function OrdersPage() {
                     <span className="text-sm text-gray-700">
                       {item.product.name} x{item.qty}
                     </span>
-                    {order.status.toLowerCase() === 'delivered' && (!item.reviewed) && (
+                    {order.status.toLowerCase() === 'delivered' && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

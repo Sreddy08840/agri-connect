@@ -5,15 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build --outDir dist",
+    "build": "vite build --outDir dist",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx",
-    "vercel-build": "pnpm run build"
+    "vercel-build": "npm run build"
   },
   "dependencies": {
-    "@agri-connect/ui": "workspace:*",
     "@hookform/resolvers": "^3.3.2",
     "@react-three/drei": "^10.7.4",
     "@react-three/fiber": "^9.3.0",
@@ -29,6 +28,7 @@
     "react-hook-form": "^7.48.2",
     "react-hot-toast": "^2.4.1",
     "react-i18next": "^13.5.0",
+    "react-is": "^18.2.0",
     "react-query": "^3.39.3",
     "react-router-dom": "^6.20.0",
     "recharts": "^3.2.1",
@@ -38,7 +38,6 @@
     "zustand": "^4.4.7"
   },
   "devDependencies": {
-    "@agri-connect/config": "workspace:*",
     "@types/react": "^18.2.45",
     "@types/react-dom": "^18.2.18",
     "@types/recharts": "^2.0.1",

@@ -183,7 +183,7 @@ export default function HelpPage() {
       </div>
 
       {/* Instruction Sections */}
-      {instructionSections.map((section, sectionIndex) => {
+      {instructionSections.map((section) => {
         const colors = getColorClasses(section.color);
         return (
           <div

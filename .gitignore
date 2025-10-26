@@ -146,3 +146,6 @@ structure.txt
 # IDE/Tool cache directories
 .qodo/
 .vercel
+
+# Local Netlify folder
+.netlify

@@ -118,7 +118,7 @@ export default function OrderDetailPage() {
         </div>
       )}
 
-      {error && (
+      {Boolean(error) && (
         <div className="bg-white rounded-lg shadow p-8 text-center">
           <Package className="h-16 w-16 text-red-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-red-600 mb-2">Failed to load order</h2>
@@ -170,7 +170,7 @@ export default function OrderDetailPage() {
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold mb-4">Items</h2>
             <div className="space-y-3">
-              {(currentOrder || order)!.items.map((it) => (
+              {(currentOrder || order)!.items.map((it: OrderItem) => (
                 <div key={it.id} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="h-10 w-10 bg-gray-200 rounded flex items-center justify-center">

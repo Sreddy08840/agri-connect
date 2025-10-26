@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { api } from '../../lib/api';
 import { getProductMainImage } from '../../lib/imageUtils';
-import { Plus, Save, Edit2 } from 'lucide-react';
+import { Plus, Edit2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Button from '../../components/ui/Button';
 import ProductImageUpload from '../../components/ProductImageUpload';
@@ -40,7 +40,7 @@ export default function FarmerProductsPage() {
   );
 
   const [newCategory, setNewCategory] = useState('');
-  const quickCreateCategory = useMutation(
+  useMutation(
     () => api.post('/categories/quick-create', { name: newCategory }),
     {
       onSuccess: () => {
@@ -132,12 +132,12 @@ export default function FarmerProductsPage() {
 
   const updateEditingProduct = (field: string, value: any) => {
     if (!editingProduct) return;
-    setEditingProduct(prev => ({ ...prev, [field]: value }));
+    setEditingProduct((prev: any) => ({ ...prev, [field]: value }));
   };
 
   const handleEditImagesChange = (images: string[]) => {
     if (!editingProduct) return;
-    setEditingImages(prev => ({ ...prev, [editingProduct.id]: images }));
+    setEditingImages((prev: Record<string, string[]>) => ({ ...prev, [editingProduct.id]: images }));
   };
 
   return (

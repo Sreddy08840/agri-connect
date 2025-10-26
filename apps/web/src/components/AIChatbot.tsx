@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { queryChatbot, type ChatResponse } from '../lib/api/ai';
+import { queryChatbot } from '../lib/api/ai';
 import { MessageCircle, Send, X, Loader2, Bot } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 

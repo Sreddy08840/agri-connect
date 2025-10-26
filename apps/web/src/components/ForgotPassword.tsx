@@ -36,7 +36,7 @@ interface ForgotPasswordProps {
 export default function ForgotPassword({ onBack, onSuccess }: ForgotPasswordProps) {
   const [step, setStep] = useState<'identifier' | 'reset'>('identifier');
   const [pendingResetId, setPendingResetId] = useState('');
-  const [devOTPCode, setDevOTPCode] = useState('');
+  const [devOTPCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   const identifierForm = useForm<IdentifierFormData>({

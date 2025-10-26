@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { getRecommendations, type RecommendationItem } from '../lib/api/ai';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Star, Sparkles } from 'lucide-react';
+import { ShoppingCart, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function RecommendedProducts() {
-  const { token, user } = useAuthStore();
+  const { user } = useAuthStore();
+  const token = localStorage.getItem('accessToken');
   const [recommendations, setRecommendations] = useState<RecommendationItem[]>([]);
   const [loading, setLoading] = useState(true);
 

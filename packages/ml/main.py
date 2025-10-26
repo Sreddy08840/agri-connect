@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import os
@@ -38,6 +39,15 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Agri-Connect ML Service", lifespan=lifespan)
 
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, replace with specific origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # cached data in memory
 prod_df = None
 tfidf = None
@@ -62,13 +72,15 @@ def root():
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     """Handle favicon requests to prevent 404 errors."""
-    return JSONResponse(status_code=204, content=None)
+    from fastapi.responses import Response
+    return Response(status_code=204)
 
 
 @app.get("/.well-known/appspecific/com.chrome.devtools.json", include_in_schema=False)
 async def chrome_devtools():
     """Handle Chrome DevTools requests to prevent 404 errors."""
-    return JSONResponse(status_code=204, content=None)
+    from fastapi.responses import Response
+    return Response(status_code=204)
 
 def load_products():
     global prod_df, tfidf, tfidf_matrix

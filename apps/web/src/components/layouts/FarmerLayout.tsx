@@ -23,7 +23,7 @@ export default function FarmerLayout() {
 
   useEffect(() => {
     if (!user?.id) return;
-    const sock = socketService.connect();
+    socketService.connect();
     socketService.joinFarmerRoom(user.id);
 
     const onLow = (p: any) => toast(`Low stock: ${p.name} (${p.stockQty})`, { icon: '⚠️', id: `fl-${p.id}` });
