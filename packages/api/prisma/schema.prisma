@@ -403,3 +403,16 @@ model SupportMessage {
   @@index([senderId])
   @@map("support_messages")
 }
+
+model FarmerRating {
+  id        String   @id @default(cuid())
+  farmerId  String
+  userId    String   // Customer who rated
+  rating    Int      // 1-5 stars
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([farmerId, userId]) // One rating per user per farmer
+  @@map("farmer_ratings")
+}

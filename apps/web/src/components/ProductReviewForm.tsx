@@ -29,11 +29,15 @@ export function ProductReviewForm({
   const queryClient = useQueryClient();
 
   const submitReviewMutation = useMutation(
-    () =>
-      api.post(`/reviews/products/${productId}`, {
+    () => {
+      if (!productId) {
+        throw new Error('Product ID is missing');
+      }
+      return api.post(`/reviews/products/${productId}`, {
         rating,
         comment: comment.trim() || undefined,
-      }),
+      });
+    },
     {
       onSuccess: () => {
         toast.success(existingReview ? 'Review updated!' : 'Review submitted!');
@@ -51,6 +55,11 @@ export function ProductReviewForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!productId) {
+      toast.error('Unable to submit review: Product information is missing');
+      onClose();
+      return;
+    }
     if (rating === 0) {
       toast.error('Please select a rating');
       return;

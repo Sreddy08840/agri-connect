@@ -27,6 +27,7 @@ import recommendationsRoutes from './routes/recommendations';
 import warrantyRoutes from './routes/warranty';
 import reviewsRoutes from './routes/reviews';
 import aiRoutes from './routes/ai';
+import ratingsRoutes from './routes/ratings';
 
 const app = express();
 const server = createServer(app);
@@ -115,6 +116,7 @@ app.use('/api/recommendations', recommendationsRoutes);
 app.use('/api/warranty', warrantyRoutes);
 app.use('/api/reviews', reviewsRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/ratings', ratingsRoutes);
 
 // Socket.IO for real-time features
 io.on('connection', (socket) => {

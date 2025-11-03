@@ -129,6 +129,7 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res) => {
             include: {
               product: {
                 select: {
+                  id: true,
                   name: true,
                   images: true,
                 },
@@ -200,6 +201,7 @@ router.get('/farmer-orders', authenticateToken, requireFarmer, async (req: Authe
             include: {
               product: {
                 select: {
+                  id: true,
                   name: true,
                   images: true,
                 },

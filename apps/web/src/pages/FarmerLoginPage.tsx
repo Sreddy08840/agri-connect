@@ -11,8 +11,12 @@ import ForgotPassword from '../components/ForgotPassword';
 import { Tractor, Leaf, Users, TrendingUp } from 'lucide-react';
 
 const credentialsSchema = z.object({
-  email: z.string().email('Enter a valid email address').optional().or(z.literal('')),
-  phone: z.string().min(5, 'Enter a valid phone number').optional().or(z.literal('')),
+  email: z.string().optional().refine((val) => !val || val === '' || z.string().email().safeParse(val).success, {
+    message: 'Enter a valid email address'
+  }),
+  phone: z.string().optional().refine((val) => !val || val === '' || val.length >= 5, {
+    message: 'Enter a valid phone number'
+  }),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 }).refine((data) => data.email || data.phone, {
   message: 'Please provide either email or phone number',
@@ -249,7 +253,11 @@ export default function FarmerLoginPage() {
                       <label className="block text-sm font-semibold text-gray-700">Email Address</label>
                       <button
                         type="button"
-                        onClick={() => setUseEmail(false)}
+                        onClick={() => {
+                          setUseEmail(false);
+                          credentialsForm.setValue('email', '');
+                          credentialsForm.clearErrors('email');
+                        }}
                         className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
                       >
                         Use Phone Number
@@ -272,7 +280,11 @@ export default function FarmerLoginPage() {
                       <label className="block text-sm font-semibold text-gray-700">Phone Number</label>
                       <button
                         type="button"
-                        onClick={() => setUseEmail(true)}
+                        onClick={() => {
+                          setUseEmail(true);
+                          credentialsForm.setValue('phone', '');
+                          credentialsForm.clearErrors('phone');
+                        }}
                         className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
                       >
                         Use Email-ID

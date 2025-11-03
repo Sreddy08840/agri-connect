@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Package, Clock, CheckCircle, Truck, Eye, Shield, Star } from 'lucide-react';
 import { ProductReviewForm } from '../components/ProductReviewForm';
+import toast from 'react-hot-toast';
 
 type OrderItem = {
   qty: number;
@@ -171,11 +172,13 @@ export default function OrdersPage() {
                     <button
                       className="px-3 py-1 bg-farmer-green-600 text-white hover:bg-farmer-green-700 rounded text-sm font-medium flex items-center space-x-1 transition-colors"
                       onClick={() => {
-                        if (order.items.length > 0) {
+                        if (order.items.length > 0 && order.items[0].product?.id) {
                           setReviewingProduct({
                             id: order.items[0].product.id,
                             name: order.items[0].product.name
                           });
+                        } else {
+                          toast.error('Unable to review: Product information is missing. Please refresh the page.');
                         }
                       }}
                     >
@@ -216,10 +219,14 @@ export default function OrdersPage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setReviewingProduct({
-                            id: item.product.id,
-                            name: item.product.name
-                          });
+                          if (item.product?.id) {
+                            setReviewingProduct({
+                              id: item.product.id,
+                              name: item.product.name
+                            });
+                          } else {
+                            toast.error('Unable to review: Product information is missing. Please refresh the page.');
+                          }
                         }}
                         className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
                         title="Review this product"
