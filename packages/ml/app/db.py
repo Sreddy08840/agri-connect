@@ -699,6 +699,150 @@ class DatabaseConnector:
             DataFrame with query results
         """
         return pd.read_sql(query, self.engine, params=params or {})
+    
+    def get_product_reviews(self, product_id: str, days: Optional[int] = None) -> pd.DataFrame:
+        """
+        Get all reviews for a specific product.
+        
+        Args:
+            product_id: Product ID
+            days: Number of days to look back (optional)
+            
+        Returns:
+            DataFrame with product reviews
+        """
+        query = """
+            SELECT 
+                pr.id,
+                pr.userId,
+                pr.productId,
+                pr.orderId,
+                pr.rating,
+                pr.comment,
+                pr.images,
+                pr.createdAt,
+                pr.updatedAt,
+                u.name as user_name
+            FROM product_reviews pr
+            LEFT JOIN users u ON pr.userId = u.id
+            WHERE pr.productId = :product_id
+        """
+        
+        params = {'product_id': product_id}
+        
+        if days:
+            query += " AND pr.createdAt >= :cutoff_date"
+            params['cutoff_date'] = datetime.now() - timedelta(days=days)
+        
+        query += " ORDER BY pr.createdAt DESC"
+        
+        df = pd.read_sql(query, self.engine, params=params)
+        
+        if not df.empty:
+            df['createdAt'] = pd.to_datetime(df['createdAt'])
+            df['updatedAt'] = pd.to_datetime(df['updatedAt'])
+        
+        return df
+    
+    def get_user_reviews(self, user_id: str, days: Optional[int] = None) -> pd.DataFrame:
+        """
+        Get all reviews by a specific user.
+        
+        Args:
+            user_id: User ID
+            days: Number of days to look back (optional)
+            
+        Returns:
+            DataFrame with user's reviews
+        """
+        query = """
+            SELECT 
+                pr.id,
+                pr.userId,
+                pr.productId,
+                pr.orderId,
+                pr.rating,
+                pr.comment,
+                pr.images,
+                pr.createdAt,
+                pr.updatedAt,
+                p.name as product_name
+            FROM product_reviews pr
+            LEFT JOIN products p ON pr.productId = p.id
+            WHERE pr.userId = :user_id
+        """
+        
+        params = {'user_id': user_id}
+        
+        if days:
+            query += " AND pr.createdAt >= :cutoff_date"
+            params['cutoff_date'] = datetime.now() - timedelta(days=days)
+        
+        query += " ORDER BY pr.createdAt DESC"
+        
+        df = pd.read_sql(query, self.engine, params=params)
+        
+        if not df.empty:
+            df['createdAt'] = pd.to_datetime(df['createdAt'])
+            df['updatedAt'] = pd.to_datetime(df['updatedAt'])
+        
+        return df
+    
+    def get_review_statistics(self, product_id: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Get review statistics for a product or overall.
+        
+        Args:
+            product_id: Product ID (optional, if None returns overall stats)
+            
+        Returns:
+            Dictionary with review statistics
+        """
+        query = """
+            SELECT 
+                COUNT(*) as total_reviews,
+                AVG(rating) as avg_rating,
+                MIN(rating) as min_rating,
+                MAX(rating) as max_rating,
+                SUM(CASE WHEN rating = 5 THEN 1 ELSE 0 END) as five_star,
+                SUM(CASE WHEN rating = 4 THEN 1 ELSE 0 END) as four_star,
+                SUM(CASE WHEN rating = 3 THEN 1 ELSE 0 END) as three_star,
+                SUM(CASE WHEN rating = 2 THEN 1 ELSE 0 END) as two_star,
+                SUM(CASE WHEN rating = 1 THEN 1 ELSE 0 END) as one_star
+            FROM product_reviews
+        """
+        
+        params = {}
+        if product_id:
+            query += " WHERE productId = :product_id"
+            params['product_id'] = product_id
+        
+        with self.engine.connect() as conn:
+            result = conn.execute(text(query), params)
+            row = result.fetchone()
+            
+            if row and row[0] > 0:
+                return {
+                    'total_reviews': row[0],
+                    'avg_rating': float(row[1]) if row[1] else 0.0,
+                    'min_rating': row[2],
+                    'max_rating': row[3],
+                    'rating_distribution': {
+                        '5': row[4],
+                        '4': row[5],
+                        '3': row[6],
+                        '2': row[7],
+                        '1': row[8]
+                    }
+                }
+            else:
+                return {
+                    'total_reviews': 0,
+                    'avg_rating': 0.0,
+                    'min_rating': 0,
+                    'max_rating': 0,
+                    'rating_distribution': {'5': 0, '4': 0, '3': 0, '2': 0, '1': 0}
+                }
 
 
 # Global database connector instance

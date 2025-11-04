@@ -57,6 +57,33 @@ interface ChatResponse {
   confidence: number;
 }
 
+interface ReviewAnalysisRequest {
+  user_id: string;
+  product_id: string;
+  text: string;
+  rating: number;
+}
+
+interface ReviewAnalysisResponse {
+  sentiment: string;
+  sentiment_scores: {
+    positive: number;
+    negative: number;
+    confidence: number;
+  };
+  is_spam: boolean;
+  spam_score: number;
+  spam_reasons: string[];
+  quality_score: number;
+  rating_text_mismatch: boolean;
+  mismatch_severity: string;
+  fraud_risk_score: number;
+  fraud_risk_level: string;
+  fraud_risk_factors: string[];
+  recommendation: string;
+  should_approve: boolean;
+}
+
 // Recommendations
 export async function getRecommendationsFromML(userId: string, n = 10): Promise<MLRecommendation> {
   const cacheKey = `recs:user:${userId}:n:${n}`;
@@ -197,6 +224,41 @@ export async function queryChatbot(query: string, userId?: string): Promise<Chat
   }
   
   return await res.json() as ChatResponse;
+}
+
+// Review Analysis
+export async function analyzeReview(review: ReviewAnalysisRequest): Promise<ReviewAnalysisResponse> {
+  const res = await fetch(`${ML_BASE}/reviews/analyze`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(review)
+  });
+  
+  if (!res.ok) {
+    throw new Error(`Review analysis error: ${res.status} ${res.statusText}`);
+  }
+  
+  return await res.json() as ReviewAnalysisResponse;
+}
+
+export async function getProductSentimentSummary(productId: string): Promise<any> {
+  const res = await fetch(`${ML_BASE}/reviews/product/${productId}/sentiment-summary`);
+  
+  if (!res.ok) {
+    throw new Error(`Sentiment summary error: ${res.status} ${res.statusText}`);
+  }
+  
+  return await res.json();
+}
+
+export async function getUserReviewPatterns(userId: string): Promise<any> {
+  const res = await fetch(`${ML_BASE}/reviews/user/${userId}/review-patterns`);
+  
+  if (!res.ok) {
+    throw new Error(`User review patterns error: ${res.status} ${res.statusText}`);
+  }
+  
+  return await res.json();
 }
 
 // Utility functions

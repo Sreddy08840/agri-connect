@@ -235,7 +235,7 @@ cd packages/ml
 pip install -r requirements.txt
 
 # Start the ML service
-python -m uvicorn main:app --reload --port 8000
+ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 # Or use npm script
 npm run dev
@@ -269,8 +269,7 @@ pnpm start
 
 # ML service only
 cd packages/ml
-python -m uvicorn main:app --reload
-```
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload```
 
 ## 🧪 Testing
 

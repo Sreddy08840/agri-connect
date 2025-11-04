@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.config import settings
 from app.schemas import HealthResponse, ErrorResponse
-from app.api import recommend, forecast, price_opt, fraud, chat
+from app.api import recommend, forecast, price_opt, fraud, chat, review_analysis
 
 # Create FastAPI app
 app = FastAPI(
@@ -38,6 +38,7 @@ app.include_router(forecast.router)
 app.include_router(price_opt.router)
 app.include_router(fraud.router)
 app.include_router(chat.router)
+app.include_router(review_analysis.router)
 
 
 @app.get("/", tags=["health"])
@@ -52,7 +53,8 @@ async def root():
             "forecast": "/forecast/product/{product_id}",
             "price_optimization": "/price-optimize/product/{product_id}",
             "fraud_detection": "/fraud/score",
-            "chatbot": "/chat/query"
+            "chatbot": "/chat/query",
+            "review_analysis": "/reviews/analyze"
         },
         "docs": "/docs"
     }

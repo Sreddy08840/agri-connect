@@ -153,3 +153,29 @@ class ErrorResponse(BaseModel):
     error: str
     detail: Optional[str] = None
     timestamp: datetime
+
+
+# Review analysis schemas
+class ReviewAnalysisRequest(BaseModel):
+    """Request for review analysis."""
+    user_id: str
+    product_id: str
+    text: str = Field(description="Review text/comment")
+    rating: int = Field(ge=1, le=5, description="Rating from 1 to 5")
+
+
+class ReviewAnalysisResponse(BaseModel):
+    """Response for review analysis."""
+    sentiment: str = Field(description="Overall sentiment: positive, negative, neutral")
+    sentiment_scores: Dict[str, float] = Field(description="Detailed sentiment scores")
+    is_spam: bool = Field(description="Whether review is detected as spam")
+    spam_score: float = Field(ge=0.0, le=1.0, description="Spam probability")
+    spam_reasons: List[str] = Field(description="Reasons for spam detection")
+    quality_score: float = Field(ge=0.0, le=1.0, description="Overall quality score")
+    rating_text_mismatch: bool = Field(description="Whether rating matches text sentiment")
+    mismatch_severity: str = Field(description="Mismatch severity: none, low, high")
+    fraud_risk_score: float = Field(ge=0.0, le=1.0, description="Fraud risk score")
+    fraud_risk_level: str = Field(description="Risk level: low, medium, high")
+    fraud_risk_factors: List[str] = Field(description="Detected fraud risk factors")
+    recommendation: str = Field(description="Action recommendation")
+    should_approve: bool = Field(description="Whether to auto-approve the review")

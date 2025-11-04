@@ -377,6 +377,8 @@ model ProductReview {
   rating      Int      // 1-5 stars
   comment     String?
   images      String?  // JSON string of image URLs
+  status      String   @default("APPROVED") // APPROVED, PENDING, FLAGGED
+  mlAnalysis  String?  // JSON string of ML analysis results
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
