@@ -7,6 +7,12 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
     
+    model_config = {
+        "protected_namespaces": (),
+        "env_file": ".env",
+        "case_sensitive": False
+    }
+    
     # Database
     database_url: str = "file:../api/prisma/dev.db"
     
@@ -36,10 +42,6 @@ class Settings(BaseSettings):
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     top_k_docs: int = 5
     max_context_length: int = 512
-    
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
 
 
 settings = Settings()

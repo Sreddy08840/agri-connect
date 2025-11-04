@@ -531,7 +531,7 @@ class DatabaseConnector:
                 o.paymentMethod as payment_method,
                 o.status,
                 o.createdAt as timestamp,
-                o.shippingAddress as shipping_address,
+                o.addressSnapshot as shipping_address,
                 COUNT(oi.id) as num_items,
                 SUM(oi.qty) as total_quantity,
                 AVG(oi.unitPrice) as avg_item_price,
