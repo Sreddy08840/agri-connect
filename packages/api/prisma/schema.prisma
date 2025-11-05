@@ -39,6 +39,8 @@ model User {
   messages         Message[]
   auditLogs        AdminAuditLog[]
   products         Product[]
+  chatsAsCustomer  Chat[]          @relation("CustomerChats")
+  chatsAsFarmer    Chat[]          @relation("FarmerChats")
   customerChats    DirectChat[]    @relation("CustomerChats")
   farmerChats      DirectChat[]    @relation("FarmerChats")
   sentMessages     DirectMessage[] @relation("SentMessages")
@@ -174,7 +176,7 @@ model Order {
   farmer          FarmerProfile @relation(fields: [farmerId], references: [id])
   items           OrderItem[]
   payment         Payment?
-  messages        Message[]
+  chat            Chat?
   warrantyClaims  WarrantyClaim[]
 
   @@map("orders")
@@ -224,17 +226,34 @@ model Payout {
   @@map("payouts")
 }
 
+model Chat {
+  id         String   @id @default(cuid())
+  orderId    String   @unique
+  customerId String
+  farmerId   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  order    Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customer User      @relation("CustomerChats", fields: [customerId], references: [id])
+  farmer   User      @relation("FarmerChats", fields: [farmerId], references: [id])
+  messages Message[]
+
+  @@map("chats")
+}
+
 model Message {
   id          String   @id @default(cuid())
-  orderId     String
+  chatId      String
   senderId    String
   body        String
   attachments String?  // Changed from Json to String
   createdAt   DateTime @default(now())
 
   // Relations
-  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  sender      User     @relation(fields: [senderId], references: [id])
+  chat   Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender User @relation(fields: [senderId], references: [id])
 
   @@map("messages")
 }

@@ -6,7 +6,7 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 // GET /api/admin/cleanup/orphaned-products - Check for orphaned products
-router.get('/orphaned-products', authenticateToken, requireRole('ADMIN'), async (req, res) => {
+router.get('/orphaned-products', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
   try {
     // Find all products with their farmer information
     const products = await prisma.product.findMany({
@@ -20,11 +20,11 @@ router.get('/orphaned-products', authenticateToken, requireRole('ADMIN'), async 
     });
 
     // Find orphaned products (farmer exists but no farmer profile)
-    const orphanedProducts = products.filter(product => 
+    const orphanedProducts = products.filter((product: any) => 
       product.farmer && product.farmer.role === 'FARMER' && !product.farmer.farmerProfile
     );
 
-    const orphanedDetails = orphanedProducts.map(product => ({
+    const orphanedDetails = orphanedProducts.map((product: any) => ({
       productId: product.id,
       productName: product.name,
       farmerId: product.farmer.id,
@@ -50,7 +50,7 @@ router.get('/orphaned-products', authenticateToken, requireRole('ADMIN'), async 
 });
 
 // POST /api/admin/cleanup/fix-orphaned-products - Fix orphaned products by creating farmer profiles
-router.post('/fix-orphaned-products', authenticateToken, requireRole('ADMIN'), async (req, res) => {
+router.post('/fix-orphaned-products', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
   try {
     // Find orphaned products
     const products = await prisma.product.findMany({
@@ -118,7 +118,7 @@ router.post('/fix-orphaned-products', authenticateToken, requireRole('ADMIN'), a
 });
 
 // DELETE /api/admin/cleanup/remove-orphaned-products - Remove orphaned products entirely
-router.delete('/remove-orphaned-products', authenticateToken, requireRole('ADMIN'), async (req, res) => {
+router.delete('/remove-orphaned-products', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
   try {
     // Find orphaned products
     const products = await prisma.product.findMany({

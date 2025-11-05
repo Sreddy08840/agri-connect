@@ -12,7 +12,7 @@ const createTransporter = () => {
   }
 
   try {
-    return nodemailer.createTransporter({
+    return nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: ADMIN_EMAIL,

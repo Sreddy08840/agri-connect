@@ -100,11 +100,11 @@ export async function getRecommendationsFromML(userId: string, n = 10): Promise<
     throw new Error(`ML service error: ${res.status} ${res.statusText}`);
   }
   
-  const data = await res.json();
+  const data: any = await res.json();
   
   // Transform to expected format
   const transformedData: MLRecommendation = {
-    user_id: userId,
+    user_id: String(userId),
     items: data.items || [],
     method: 'content-based'
   };
@@ -130,11 +130,11 @@ export async function getSimilarProducts(productId: string, n = 10): Promise<MLR
     throw new Error(`ML service error: ${res.status} ${res.statusText}`);
   }
   
-  const data = await res.json();
+  const data: any = await res.json();
   
   // Transform to expected format
   const transformedData: MLRecommendation = {
-    user_id: productId,
+    user_id: String(productId),
     items: data.items || [],
     method: 'content-based'
   };

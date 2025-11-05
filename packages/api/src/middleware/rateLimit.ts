@@ -13,11 +13,11 @@ export const otpRateLimit = rateLimit({
     async increment(key: string) {
       const current = await redis.get(key);
       if (current === null) {
-        await redis.setex(key, 900, 1); // 15 minutes
+        await redis.setex(key, 900, '1'); // 15 minutes
         return { totalHits: 1, resetTime: new Date(Date.now() + 900000) };
       }
       const newCount = parseInt(current) + 1;
-      await redis.setex(key, 900, newCount);
+      await redis.setex(key, 900, String(newCount));
       return { totalHits: newCount, resetTime: new Date(Date.now() + 900000) };
     },
     async decrement(key: string) {
@@ -27,7 +27,7 @@ export const otpRateLimit = rateLimit({
         if (newCount === 0) {
           await redis.del(key);
         } else {
-          await redis.setex(key, 900, newCount);
+          await redis.setex(key, 900, String(newCount));
         }
       }
     },

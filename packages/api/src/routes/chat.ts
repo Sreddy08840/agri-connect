@@ -32,7 +32,7 @@ router.get('/:orderId', authenticateToken, async (req: AuthenticatedRequest, res
     }
 
     // Check authorization
-    if (req.user!.role === 'CUSTOMER' && order.userId !== req.user!.userId) {
+    if (req.user!.role === 'CUSTOMER' && order.customerId !== req.user!.userId) {
       return res.status(403).json({ error: 'Not authorized' });
     }
     if (req.user!.role === 'FARMER' && order.farmerId !== req.user!.userId) {
@@ -97,7 +97,7 @@ router.post('/messages', authenticateToken, async (req: AuthenticatedRequest, re
     }
 
     // Check authorization
-    if (req.user!.role === 'CUSTOMER' && order.userId !== req.user!.userId) {
+    if (req.user!.role === 'CUSTOMER' && order.customerId !== req.user!.userId) {
       return res.status(403).json({ error: 'Not authorized' });
     }
     if (req.user!.role === 'FARMER' && order.farmerId !== req.user!.userId) {
@@ -113,7 +113,7 @@ router.post('/messages', authenticateToken, async (req: AuthenticatedRequest, re
       chat = await prisma.chat.create({
         data: {
           orderId,
-          customerId: order.userId,
+          customerId: order.customerId,
           farmerId: order.farmerId,
         },
       });
@@ -125,7 +125,7 @@ router.post('/messages', authenticateToken, async (req: AuthenticatedRequest, re
         chatId: chat.id,
         senderId: req.user!.userId,
         body,
-        attachments,
+        attachments: Array.isArray(attachments) ? JSON.stringify(attachments) : attachments,
       },
       include: {
         sender: {
@@ -167,7 +167,7 @@ router.get('/:orderId/messages', authenticateToken, async (req: AuthenticatedReq
     }
 
     // Check authorization
-    if (req.user!.role === 'CUSTOMER' && order.userId !== req.user!.userId) {
+    if (req.user!.role === 'CUSTOMER' && order.customerId !== req.user!.userId) {
       return res.status(403).json({ error: 'Not authorized' });
     }
     if (req.user!.role === 'FARMER' && order.farmerId !== req.user!.userId) {

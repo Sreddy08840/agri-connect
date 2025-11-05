@@ -16,10 +16,10 @@ router.get('/', async (req, res) => {
     }
 
     // Get recommendations from ML service
-    const mlRes = await getRecommendationsFromML(userId, n);
+    const mlRes = await getRecommendationsFromML(String(userId), n);
     
     // mlRes.items -> [{id, score}, ...]
-    const productIds = mlRes.items.map((it: any) => it.id);
+    const productIds = mlRes.items.map((it: any) => String(it.id));
 
     if (productIds.length === 0) {
       return res.json({ userId, items: [] });

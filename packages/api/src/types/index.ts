@@ -1,7 +1,7 @@
 export interface JWTPayload {
   userId: string;
   role: 'CUSTOMER' | 'FARMER' | 'ADMIN';
-  phone: string;
+  phone?: string;
 }
 
 export interface AuthenticatedRequest extends Request {

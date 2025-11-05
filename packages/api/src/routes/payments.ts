@@ -17,17 +17,18 @@ router.post('/intent', authenticateToken, requireCustomer, async (req: Authentic
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },
+      select: { customerId: true, status: true }
     });
 
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    if (order.userId !== req.user!.userId) {
+    if (order.customerId !== req.user!.userId) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
-    if (order.paymentStatus !== 'PENDING') {
+    if (order.status !== 'PENDING') {
       return res.status(400).json({ error: 'Order already processed' });
     }
 
@@ -63,7 +64,7 @@ router.post('/webhook', async (req, res) => {
       // Update order payment status
       await prisma.order.update({
         where: { id: order_id },
-        data: { paymentStatus: 'PAID' },
+        data: { status: 'PAID' },
       });
 
       // TODO: Send confirmation notification
@@ -85,7 +86,8 @@ router.get('/:orderId/status', authenticateToken, requireCustomer, async (req: A
       where: { id: orderId },
       select: {
         id: true,
-        paymentStatus: true,
+        customerId: true,
+        status: true,
         paymentMethod: true,
         total: true,
       },
@@ -95,7 +97,7 @@ router.get('/:orderId/status', authenticateToken, requireCustomer, async (req: A
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    if (order.userId !== req.user!.userId) {
+    if (order.customerId !== req.user!.userId) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 

@@ -347,7 +347,7 @@ router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res) => 
     // If customer is viewing their own order, check if they've already reviewed all products
     if (req.user?.role === 'CUSTOMER' && order) {
       // Get all product IDs from order items
-      const productIds = order.items.map(item => item.product.id);
+      const productIds = order.items.map((item: any) => item.product.id);
       
       if (productIds.length > 0) {
         // Find all reviews by this user for these products
@@ -361,10 +361,10 @@ router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res) => 
           }
         });
         
-        const reviewedProductIds = new Set(reviews.map(r => r.productId));
+        const reviewedProductIds = new Set(reviews.map((r: any) => r.productId));
         
         // Mark each item as reviewed or not
-        order.items = order.items.map(item => ({
+        order.items = order.items.map((item: any) => ({
           ...item,
           reviewed: reviewedProductIds.has(item.product.id)
         }));

@@ -86,7 +86,6 @@ if (useMock) {
 } else {
   const url = process.env.REDIS_URL || 'redis://localhost:6379';
   const client = new Redis(url, {
-    retryDelayOnFailover: 100,
     enableReadyCheck: false,
     maxRetriesPerRequest: null,
   });

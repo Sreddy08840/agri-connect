@@ -137,7 +137,7 @@ router.post('/register', async (req, res) => {
       include: { farmerProfile: true }
     });
 
-    const tokens = generateTokens({ userId: user.id, role: user.role });
+    const tokens = generateTokens({ userId: user.id, role: user.role as 'CUSTOMER' | 'FARMER' | 'ADMIN' });
     
     res.json({
       user: {
@@ -191,7 +191,7 @@ router.post('/login', async (req, res) => {
       return res.status(403).json({ error: 'Invalid role for this login' });
     }
 
-    const tokens = generateTokens({ userId: user.id, role: user.role });
+    const tokens = generateTokens({ userId: user.id, role: user.role as 'CUSTOMER' | 'FARMER' | 'ADMIN' });
     
     res.json({
       user: {
@@ -584,20 +584,20 @@ router.post('/google', async (req, res) => {
         return res.status(400).json({ error: 'Invalid access token' });
       }
 
-      const userInfo = await response.json();
+      const userInfo: any = await response.json();
 
       // Create a mock ticket object for mobile
       ticket = {
         getPayload: () => ({
-          sub: userInfo.id,
-          email: userInfo.email,
-          name: userInfo.name,
-          picture: userInfo.picture,
+          sub: userInfo.id as string,
+          email: userInfo.email as string,
+          name: userInfo.name as string,
+          picture: userInfo.picture as string,
         }),
       };
     }
 
-    const payload = ticket.getPayload();
+    const payload = ticket?.getPayload();
     if (!payload) {
       return res.status(400).json({ error: 'Invalid Google token' });
     }

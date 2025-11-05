@@ -20,7 +20,7 @@ export async function ensureProductsIndex() {
   })
   // set searchable/filters facets
   try {
-    await index.updateSettings({
+    await (index as any).updateSettings({
       searchableAttributes: ['name', 'description', 'category.name'],
       filterableAttributes: ['status', 'category.id', 'category.name', 'farmer.id'],
       sortableAttributes: ['price', 'createdAt', 'stockQty']

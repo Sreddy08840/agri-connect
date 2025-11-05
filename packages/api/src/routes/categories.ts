@@ -120,8 +120,9 @@ router.patch('/:id', authenticateToken, requireAdmin, async (req: AuthenticatedR
     const data = updateCategorySchema.parse(req.body);
 
     // Generate new slug if name is being updated
+    const updateData: any = { ...data };
     if (data.name) {
-      data.slug = data.name
+      updateData.slug = data.name
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
@@ -129,7 +130,7 @@ router.patch('/:id', authenticateToken, requireAdmin, async (req: AuthenticatedR
 
     const category = await prisma.category.update({
       where: { id },
-      data,
+      data: updateData,
     });
 
     res.json(category);

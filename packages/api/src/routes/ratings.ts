@@ -100,10 +100,8 @@ router.get('/farmer/:farmerId', async (req, res) => {
     const [ratings, total] = await Promise.all([
       prisma.farmerRating.findMany({
         where: { farmerId },
-        include: {
-          // Note: We don't have User relation in FarmerRating model yet
-          // We'll need to fetch user info separately or add the relation
-        },
+        // Note: We don't have User relation in FarmerRating model yet
+        // We'll need to fetch user info separately or add the relation
         orderBy: { createdAt: 'desc' },
         skip,
         take: Number(limit)
@@ -113,7 +111,7 @@ router.get('/farmer/:farmerId', async (req, res) => {
 
     // Fetch user info for each rating
     const ratingsWithUsers = await Promise.all(
-      ratings.map(async (rating) => {
+      ratings.map(async (rating: any) => {
         const user = await prisma.user.findUnique({
           where: { id: rating.userId },
           select: { id: true, name: true, avatarUrl: true }

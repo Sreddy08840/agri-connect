@@ -199,7 +199,7 @@ const mapProduct = (p: any) => {
       if (typeof p.images === 'string') {
         // Check if it contains commas (multiple URLs)
         if (p.images.includes(',')) {
-          images = p.images.split(',').map(url => url.trim());
+          images = p.images.split(',').map((url: string) => url.trim());
         } else {
           // Single URL
           images = [p.images];
