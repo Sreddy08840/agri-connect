@@ -2,6 +2,39 @@
 
 A comprehensive marketplace platform that directly connects farmers and consumers, eliminating intermediaries and ensuring fair pricing.
 
+## 🚀 Quick Start Commands
+
+```bash
+# 1. Clone and install
+git clone https://github.com/Sreddy08840/agri-connect.git
+cd agri-connect
+pnpm install
+
+# 2. Set up database
+cd packages/api
+pnpm prisma db push
+cd ../..
+
+# 3. Set up ML service
+cd packages/ml
+python -m venv venv
+.\venv\Scripts\activate          # Windows
+pip install -r requirements.txt
+.\venv\Scripts\python.exe quick_fix.py
+.\venv\Scripts\python.exe train_als.py
+cd ../..
+
+# 4. Start services (in separate terminals)
+cd packages/api && pnpm dev      # Terminal 1 - API (port 8080)
+cd apps/web && pnpm dev          # Terminal 2 - Web (port 5173)
+cd packages/ml && python -m app.main  # Terminal 3 - ML (port 8000)
+```
+
+**Access the app:**
+- Web: http://localhost:5173
+- API: http://localhost:8080
+- ML Docs: http://127.0.0.1:8000/docs
+
 ---
 
 ## 🧹 Project Cleanup & Maintenance
@@ -179,78 +212,174 @@ agri-connect/
 ## 🛠️ Development Setup
 
 ### Prerequisites
-- Node.js 18+
-- pnpm 8+
-- Python 3.11+ (for ML service)
-- SQLite (included) / PostgreSQL 15+ (optional)
-- Redis 7+ (optional)
+- **Node.js** 18+ ([Download](https://nodejs.org/))
+- **pnpm** 8+ (Install: `npm install -g pnpm`)
+- **Python** 3.11+ ([Download](https://www.python.org/downloads/))
+- **SQLite** (included with Python) / PostgreSQL 15+ (optional)
+- **Redis** 7+ (optional, for caching)
 
 ### Quick Start
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Sreddy08840/agri-connect.git
    cd agri-connect
    ```
 
-2. **Install dependencies**
+2. **Install Node.js dependencies**
    ```bash
    pnpm install
    ```
 
 3. **Set up environment variables**
    ```bash
-   cp packages/api/env.example packages/api/.env
+   # Copy example env file
+   cp packages/api/.env.example packages/api/.env
+   
    # Edit the .env file with your configuration
+   # For development, default values should work
    ```
 
-4. **Start the database**
+4. **Set up the database**
    ```bash
-   docker-compose up postgres redis -d
+   # Push schema to database
+   cd packages/api
+   pnpm prisma db push
+   
+   # Seed with sample data (optional)
+   pnpm prisma db seed
+   
+   cd ../..
    ```
 
-5. **Set up the database**
+5. **Set up ML Service**
    ```bash
-   pnpm db:push
-   pnpm db:seed
+   cd packages/ml
+   
+   # Create virtual environment
+   python -m venv venv
+   
+   # Activate virtual environment
+   # Windows:
+   .\venv\Scripts\activate
+   # Linux/Mac:
+   source venv/bin/activate
+   
+   # Install dependencies
+   pip install -r requirements.txt
+   
+   # Run quick fix to set up models
+   .\venv\Scripts\python.exe quick_fix.py
+   
+   # (Optional) Train ALS model
+   .\venv\Scripts\python.exe train_als.py
+   
+   cd ../..
    ```
 
 6. **Start all services**
+
+   **Terminal 1 - API Server:**
    ```bash
+   cd packages/api
    pnpm dev
    ```
+   API will run on http://localhost:8080
 
-This will start:
-- API server on http://localhost:8080
-- Web app on http://localhost:5173
-- Mobile app (via Expo) on your device
+   **Terminal 2 - Web App:**
+   ```bash
+   cd apps/web
+   pnpm dev
+   ```
+   Web will run on http://localhost:5173
+
+   **Terminal 3 - ML Service:**
+   ```bash
+   cd packages/ml
+   python -m app.main
+   ```
+   ML service will run on http://127.0.0.1:8000
+
+### Verify Setup
+
+- **API**: http://localhost:8080/api/health
+- **Web**: http://localhost:5173
+- **ML Service**: http://127.0.0.1:8000/docs
 
 ### ML Recommendation Service
 
-The ML service provides content-based product recommendations:
+The ML service provides AI-powered recommendations, review analysis, fraud detection, and chatbot features.
+
+#### Quick Setup
 
 ```bash
-# Install Python dependencies
+# Navigate to ML service
 cd packages/ml
+
+# Create virtual environment (first time only)
+python -m venv venv
+
+# Activate virtual environment
+# Windows:
+.\venv\Scripts\activate
+# Linux/Mac:
+source venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
 
-# Start the ML service
- uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+# Run quick fix to set up models
+.\venv\Scripts\python.exe quick_fix.py
 
-# Or use npm script
-npm run dev
+# Train ALS model (optional, for better recommendations)
+.\venv\Scripts\python.exe train_als.py
+
+# Start the ML service
+python -m app.main
 ```
 
-The service will be available at http://localhost:8000
+The service will be available at:
+- **API**: http://127.0.0.1:8000
+- **Docs**: http://127.0.0.1:8000/docs
 
-**Features:**
-- Content-based filtering using TF-IDF and cosine similarity
-- Automatic product index on startup
-- Fallback to newest products if no viewing history
-- `/recommendations?userId=1&n=10` - Get recommendations
-- `/refresh` - Reload product data
+#### Features
 
-See `packages/ml/QUICKSTART.md` for detailed documentation.
+- ✅ **Review Analysis** - Sentiment analysis, spam detection, fraud detection
+- ✅ **Recommendations** - Hybrid (ALS + TF-IDF) collaborative filtering
+- ✅ **Similar Products** - Content-based similarity matching
+- ✅ **Chatbot** - RAG-based product information assistant
+- ✅ **Price Optimization** - Dynamic pricing suggestions
+- ✅ **Demand Forecasting** - Sales prediction models
+
+#### Testing the ML Service
+
+```bash
+# Option 1: Interactive API docs (recommended)
+# Open in browser: http://127.0.0.1:8000/docs
+
+# Option 2: Visual test UI
+# Open: packages/ml/test_ui.html
+
+# Option 3: Automated test script
+.\venv\Scripts\python.exe test_endpoints.py
+
+# Option 4: Manual curl commands
+curl http://127.0.0.1:8000/health
+curl -X POST http://127.0.0.1:8000/reviews/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"user-123","product_id":"prod-456","text":"Great product!","rating":5}'
+```
+
+#### Key Endpoints
+
+- `GET /health` - Service health check
+- `POST /reviews/analyze` - Analyze review sentiment and spam
+- `GET /recommendations/user/{user_id}` - Get personalized recommendations
+- `GET /recommendations/product/{product_id}` - Get similar products
+- `POST /chat/query` - Ask chatbot about products
+- `POST /fraud/score` - Calculate fraud risk score
+
+See `packages/ml/START_HERE.md` for complete documentation.
 
 ### Individual Service Commands
 
@@ -269,7 +398,8 @@ pnpm start
 
 # ML service only
 cd packages/ml
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload```
+python -m app.main
+```
 
 ## 🧪 Testing
 
@@ -469,12 +599,77 @@ For support and questions:
 
 - [ ] Advanced search and filtering
 - [x] Machine learning recommendations
+- [x] Review sentiment analysis
+- [x] Fraud detection system
+- [x] AI chatbot for product queries
 - [ ] Multi-language support
-- [ ] Advanced analytics
+- [ ] Advanced analytics dashboard
 - [ ] Mobile app store deployment
 - [ ] Integration with logistics providers
 - [ ] Farmer verification enhancements
-- [ ] Advanced payment options
+- [ ] Advanced payment options (UPI, wallets)
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+#### ML Service Issues
+
+**Problem**: `ModuleNotFoundError: No module named 'pydantic_settings'`
+```bash
+# Solution: Install missing dependencies
+cd packages/ml
+.\venv\Scripts\pip.exe install pydantic-settings pandas scikit-learn
+```
+
+**Problem**: "ALS model not found"
+```bash
+# Solution: Train the ALS model
+cd packages/ml
+.\venv\Scripts\python.exe train_als.py
+```
+
+**Problem**: Can't access http://0.0.0.0:8000
+```bash
+# Solution: Use 127.0.0.1 or localhost instead
+# Open: http://127.0.0.1:8000/docs
+```
+
+**Problem**: "Embedding model error - paging file too small"
+```bash
+# This is expected and can be ignored
+# The chatbot feature will be unavailable, but all other features work fine
+```
+
+#### API Issues
+
+**Problem**: Database connection error
+```bash
+# Solution: Push schema again
+cd packages/api
+pnpm prisma db push
+```
+
+**Problem**: Port 8080 already in use
+```bash
+# Solution: Change port in .env file
+# Or kill the process using the port
+```
+
+#### Web App Issues
+
+**Problem**: API connection failed
+```bash
+# Solution: Ensure API is running on port 8080
+# Check VITE_API_URL in apps/web/.env
+```
+
+### Getting Help
+
+- Check `packages/ml/START_HERE.md` for ML service documentation
+- Check `packages/ml/FIX_ALL_ERRORS.md` for detailed troubleshooting
+- Open an issue on GitHub with error logs
+- Check the API docs at http://localhost:8080/api/docs
 
 ---
 
