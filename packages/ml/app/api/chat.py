@@ -25,9 +25,15 @@ def load_embedding_model():
     
     if _embedding_model is None:
         try:
-            _embedding_model = SentenceTransformer(settings.embedding_model)
+            # Try to load the model with reduced memory usage
+            _embedding_model = SentenceTransformer(
+                settings.embedding_model,
+                device='cpu'  # Force CPU to avoid GPU memory issues
+            )
+            print("✓ Embedding model loaded")
         except Exception as e:
-            print(f"Failed to load embedding model: {e}")
+            print(f"⚠ Failed to load embedding model: {e}")
+            print("  Chatbot will be unavailable. This is optional.")
             _embedding_model = None
 
 

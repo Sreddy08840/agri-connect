@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML Service Endpoint Tester</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .endpoint-section {
+            margin-bottom: 40px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        
+        .endpoint-section:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+        }
+        
+        .endpoint-title {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .method-badge {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.7em;
+            font-weight: bold;
+        }
+        
+        .method-get {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .method-post {
+            background: #2196f3;
+            color: white;
+        }
+        
+        .endpoint-description {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .response-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+            display: none;
+        }
+        
+        .response-box.show {
+            display: block;
+        }
+        
+        .response-box.success {
+            background: #e8f5e9;
+            border-left-color: #4caf50;
+        }
+        
+        .response-box.error {
+            background: #ffebee;
+            border-left-color: #f44336;
+        }
+        
+        .response-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        pre {
+            background: white;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .status-200 {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .status-404 {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .status-500 {
+            background: #f44336;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌾 ML Service Endpoint Tester</h1>
+            <p>Test your Agri-Connect ML service endpoints interactively</p>
+        </div>
+        
+        <div class="content">
+            <!-- Health Check -->
+            <div class="endpoint-section">
+                <div class="endpoint-title">
+                    <span class="method-badge method-get">GET</span>
+                    Health Check
+                </div>
+                <div class="endpoint-description">Check if the service is running and which models are loaded</div>
+                <button onclick="testHealth()">Test Health Endpoint</button>
+                <div id="health-response" class="response-box"></div>
+            </div>
+            
+            <!-- Review Analysis -->
+            <div class="endpoint-section">
+                <div class="endpoint-title">
+                    <span class="method-badge method-post">POST</span>
+                    Review Analysis
+                </div>
+                <div class="endpoint-description">Analyze a review for sentiment, spam, and fraud detection</div>
+                
+                <div class="form-group">
+                    <label>User ID:</label>
+                    <input type="text" id="review-user-id" value="test-user-123" placeholder="Enter user ID">
+                </div>
+                
+                <div class="form-group">
+                    <label>Product ID:</label>
+                    <input type="text" id="review-product-id" value="test-product-456" placeholder="Enter product ID">
+                </div>
+                
+                <div class="form-group">
+                    <label>Review Text:</label>
+                    <textarea id="review-text" placeholder="Enter review text">This is an excellent product! Very fresh and high quality. I highly recommend it to everyone.</textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Rating (1-5):</label>
+                    <select id="review-rating">
+                        <option value="1">1 - Very Poor</option>
+                        <option value="2">2 - Poor</option>
+                        <option value="3">3 - Average</option>
+                        <option value="4">4 - Good</option>
+                        <option value="5" selected>5 - Excellent</option>
+                    </select>
+                </div>
+                
+                <button onclick="testReviewAnalysis()">Analyze Review</button>
+                <div id="review-response" class="response-box"></div>
+            </div>
+            
+            <!-- User Recommendations -->
+            <div class="endpoint-section">
+                <div class="endpoint-title">
+                    <span class="method-badge method-get">GET</span>
+                    User Recommendations
+                </div>
+                <div class="endpoint-description">Get personalized product recommendations for a user</div>
+                
+                <div class="form-group">
+                    <label>User ID:</label>
+                    <input type="text" id="rec-user-id" value="test-user-123" placeholder="Enter user ID">
+                </div>
+                
+                <div class="form-group">
+                    <label>Number of Recommendations:</label>
+                    <input type="number" id="rec-top-k" value="10" min="1" max="100">
+                </div>
+                
+                <button onclick="testRecommendations()">Get Recommendations</button>
+                <div id="rec-response" class="response-box"></div>
+            </div>
+            
+            <!-- Similar Products -->
+            <div class="endpoint-section">
+                <div class="endpoint-title">
+                    <span class="method-badge method-get">GET</span>
+                    Similar Products
+                </div>
+                <div class="endpoint-description">Find products similar to a given product</div>
+                
+                <div class="form-group">
+                    <label>Product ID:</label>
+                    <input type="text" id="similar-product-id" value="test-product-123" placeholder="Enter product ID">
+                </div>
+                
+                <div class="form-group">
+                    <label>Number of Results:</label>
+                    <input type="number" id="similar-top-k" value="10" min="1" max="100">
+                </div>
+                
+                <button onclick="testSimilarProducts()">Find Similar Products</button>
+                <div id="similar-response" class="response-box"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const BASE_URL = 'http://127.0.0.1:8000';
+        
+        function showResponse(elementId, status, data) {
+            const element = document.getElementById(elementId);
+            element.className = 'response-box show';
+            
+            if (status >= 200 && status < 300) {
+                element.classList.add('success');
+            } else {
+                element.classList.add('error');
+            }
+            
+            const statusClass = status === 200 ? 'status-200' : 
+                               status === 404 ? 'status-404' : 'status-500';
+            
+            element.innerHTML = `
+                <div class="response-title">
+                    Response <span class="status-indicator ${statusClass}">${status}</span>
+                </div>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+        }
+        
+        async function testHealth() {
+            try {
+                const response = await fetch(`${BASE_URL}/health`);
+                const data = await response.json();
+                showResponse('health-response', response.status, data);
+            } catch (error) {
+                showResponse('health-response', 500, { error: error.message });
+            }
+        }
+        
+        async function testReviewAnalysis() {
+            try {
+                const requestData = {
+                    user_id: document.getElementById('review-user-id').value,
+                    product_id: document.getElementById('review-product-id').value,
+                    text: document.getElementById('review-text').value,
+                    rating: parseInt(document.getElementById('review-rating').value)
+                };
+                
+                const response = await fetch(`${BASE_URL}/reviews/analyze`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                const data = await response.json();
+                showResponse('review-response', response.status, data);
+            } catch (error) {
+                showResponse('review-response', 500, { error: error.message });
+            }
+        }
+        
+        async function testRecommendations() {
+            try {
+                const userId = document.getElementById('rec-user-id').value;
+                const topK = document.getElementById('rec-top-k').value;
+                
+                const response = await fetch(`${BASE_URL}/recommendations/user/${userId}?top_k=${topK}`);
+                const data = await response.json();
+                showResponse('rec-response', response.status, data);
+            } catch (error) {
+                showResponse('rec-response', 500, { error: error.message });
+            }
+        }
+        
+        async function testSimilarProducts() {
+            try {
+                const productId = document.getElementById('similar-product-id').value;
+                const topK = document.getElementById('similar-top-k').value;
+                
+                const response = await fetch(`${BASE_URL}/recommendations/product/${productId}?top_k=${topK}`);
+                const data = await response.json();
+                showResponse('similar-response', response.status, data);
+            } catch (error) {
+                showResponse('similar-response', 500, { error: error.message });
+            }
+        }
+    </script>
+</body>
+</html>
