@@ -14,6 +14,7 @@
     "lint": "pnpm run --recursive lint",
     "type-check": "pnpm run --recursive type-check",
     "clean": "pnpm run --recursive clean",
+    "update-lockfile": "pnpm install --no-frozen-lockfile && git add pnpm-lock.yaml",
     "db:generate": "cd packages/api && pnpm prisma generate",
     "db:push": "cd packages/api && pnpm prisma db push",
     "db:migrate": "cd packages/api && pnpm prisma migrate dev",
