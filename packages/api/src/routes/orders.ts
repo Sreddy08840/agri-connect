@@ -121,19 +121,21 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res) => {
       where.status = status;
     }
 
+    // Fetch orders and related basic relations (but avoid nested product include which can fail on
+    // malformed/legacy product columns in some DBs). We'll load product details in a second query
+    // and attach them to items to keep the response shape stable.
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
         where,
         include: {
           items: {
-            include: {
-              product: {
-                select: {
-                  id: true,
-                  name: true,
-                  images: true,
-                },
-              },
+            select: {
+              id: true,
+              orderId: true,
+              productId: true,
+              qty: true,
+              unitPrice: true,
+              createdAt: true,
             },
           },
           customer: {
@@ -160,6 +162,25 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res) => {
       }),
       prisma.order.count({ where }),
     ]);
+
+    // Collect all productIds from the fetched orders
+    const productIds = Array.from(new Set(orders.flatMap(o => o.items.map((it: any) => it.productId))));
+    let productsMap: Record<string, any> = {};
+    if (productIds.length > 0) {
+      const products = await prisma.product.findMany({
+        where: { id: { in: productIds } },
+        select: { id: true, name: true, images: true },
+      });
+      productsMap = products.reduce((acc: any, p: any) => { acc[p.id] = p; return acc; }, {});
+    }
+
+    // Attach product details to each item (preserve original shape used by the client)
+    orders.forEach((order: any) => {
+      order.items = order.items.map((it: any) => ({
+        ...it,
+        product: productsMap[it.productId] || null,
+      }));
+    });
 
     res.json({
       orders,

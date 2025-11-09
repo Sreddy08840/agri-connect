@@ -1,7 +1,8 @@
 """AI Chatbot/RAG API endpoints."""
 from fastapi import APIRouter, HTTPException, Body
 import numpy as np
-from sentence_transformers import SentenceTransformer
+# Delay importing heavy NLP libraries until they are needed to avoid
+# long import times or environment issues during service startup.
 import faiss
 import joblib
 from typing import List, Dict, Any
@@ -25,6 +26,11 @@ def load_embedding_model():
     
     if _embedding_model is None:
         try:
+            # Import here to avoid importing transformers/sentence-transformers
+            # at module-import time which can be slow and may traverse
+            # large directories on some systems.
+            from sentence_transformers import SentenceTransformer
+
             # Try to load the model with reduced memory usage
             _embedding_model = SentenceTransformer(
                 settings.embedding_model,
@@ -287,6 +293,5 @@ async def get_query_suggestions():
     }
 
 
-# Initialize on module load
-load_embedding_model()
-build_vector_index()
+# Note: Do not load heavy NLP models at import time. Models are loaded
+# lazily on first request via `load_embedding_model()` and `build_vector_index()`.

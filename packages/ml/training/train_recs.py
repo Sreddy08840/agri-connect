@@ -128,14 +128,45 @@ def train_content_based_model():
     )
     
     # Train TF-IDF vectorizer
+    n_docs = len(products_df)
+    # For very small document sets, sklearn's min_df/max_df can conflict
+    # (e.g. min_df=1 and max_df=0.95 with a single document). Choose
+    # conservative values based on document count to avoid ValueError.
+    # Also scale min_df dynamically for medium/large corpora using a
+    # fractional heuristic so that extremely rare tokens are ignored.
+    if n_docs <= 1:
+        tfidf_min_df = 1
+        tfidf_max_df = 1.0
+    else:
+        # For small corpora increase max_df to avoid removing terms that
+        # appear in all documents (common in small synthetic datasets).
+        if n_docs < 10:
+            tfidf_max_df = 1.0
+        else:
+            tfidf_max_df = 0.95
+
+        # Dynamic min_df heuristics:
+        #  - tiny corpora (<10): keep min_df=1
+        #  - small (10-99): remove tokens appearing in <2% of docs
+        #  - medium (100-999): remove tokens appearing in <1% of docs
+        #  - large (>=1000): remove tokens appearing in <0.5% of docs
+        if n_docs < 10:
+            tfidf_min_df = 1
+        elif n_docs < 100:
+            tfidf_min_df = max(1, int(n_docs * 0.02))
+        elif n_docs < 1000:
+            tfidf_min_df = max(1, int(n_docs * 0.01))
+        else:
+            tfidf_min_df = max(1, int(n_docs * 0.005))
+
     tfidf = TfidfVectorizer(
         stop_words='english',
         max_features=settings.tfidf_max_features,
         ngram_range=(1, 2),
-        min_df=1,
-        max_df=0.95
+        min_df=tfidf_min_df,
+        max_df=tfidf_max_df
     )
-    
+
     tfidf_matrix = tfidf.fit_transform(products_df['text'].values)
     
     print(f"✓ TF-IDF model trained")
@@ -303,3 +334,63 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+def train_content_based():
+    """Compatibility wrapper: train and save only the content-based TF-IDF model."""
+    tfidf_model, tfidf_matrix, products_df = train_content_based_model()
+    if tfidf_model is None:
+        print("✗ Cannot train content-based model without product data")
+        return
+
+    tfidf_path = settings.model_dir / "tfidf.joblib"
+    joblib.dump({
+        'vectorizer': tfidf_model,
+        'matrix': tfidf_matrix,
+        'products': products_df[['id', 'title', 'description', 'category', 'text']]
+    }, tfidf_path)
+    print(f"✓ TF-IDF model saved to {tfidf_path}")
+
+
+def train_collaborative():
+    """Compatibility wrapper: build user-item matrix, train ALS and save mappings.
+
+    This mirrors the collaborative portion of the original training flow so
+    callers that expect `train_collaborative()` (for example `train_all.py`)
+    will continue to work.
+    """
+    user_item_matrix, user_index, item_index, user_ids, item_ids = build_user_item_matrix()
+    if user_item_matrix is None:
+        print("✗ Cannot train collaborative filtering without order data")
+        return
+
+    als_model = train_als_model(user_item_matrix, factors=64, regularization=0.01, iterations=20)
+
+    # Save ALS model
+    als_path = settings.model_dir / "als_model.joblib"
+    joblib.dump(als_model, als_path)
+    print(f"✓ ALS model saved to {als_path}")
+
+    # Save mappings as JSON
+    mappings_path = settings.model_dir / "mappings.json"
+    mappings = {
+        'user_index': user_index,
+        'item_index': item_index,
+        'user_ids': user_ids,
+        'item_ids': item_ids,
+        'index_to_user': {str(idx): uid for uid, idx in user_index.items()},
+        'index_to_item': {str(idx): iid for iid, idx in item_index.items()}
+    }
+
+    with open(mappings_path, 'w') as f:
+        json.dump(mappings, f, indent=2)
+    print(f"✓ Mappings saved to {mappings_path}")
+
+    # Save matrix metadata
+    matrix_path = settings.model_dir / "user_item_matrix.joblib"
+    joblib.dump({
+        'matrix': None,
+        'shape': (len(user_ids), len(item_ids)),
+        'nnz': user_item_matrix.nnz
+    }, matrix_path)
+    print(f"✓ Matrix metadata saved to {matrix_path}")

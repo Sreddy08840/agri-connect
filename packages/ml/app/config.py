@@ -7,10 +7,15 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
     
+    # Allow unknown/extra variables in the .env file so this service
+    # can be started from the repository root where a shared .env
+    # contains variables for other services (api, web, etc.).
+    # Use 'ignore' so unknown keys are silently ignored.
     model_config = {
         "protected_namespaces": (),
         "env_file": ".env",
-        "case_sensitive": False
+        "case_sensitive": False,
+        "extra": "ignore",
     }
     
     # Database

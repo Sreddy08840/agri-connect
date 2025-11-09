@@ -23,19 +23,19 @@ install:
 	pip install -r requirements.txt
 
 train:
-	python training/train_all.py
+	py -m training.train_all
 
 train-recs:
-	python training/train_recs.py
+	py -m training.train_recs
 
 train-forecast:
-	python training/train_forecast.py
+	py -m training.train_forecast
 
 train-price:
-	python training/train_price.py
+	py -m training.train_price
 
 train-fraud:
-	python training/train_fraud.py
+	py -m training.train_fraud
 
 serve:
 	uvicorn app.main:app --host 0.0.0.0 --port 8000

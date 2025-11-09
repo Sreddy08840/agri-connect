@@ -250,7 +250,7 @@ router.post('/register-password', otpRateLimit, async (req, res) => {
       userData.farmerProfile = {
         create: {
           businessName,
-          ...(farmAddress && { location: farmAddress }),
+          ...(farmAddress && { address: farmAddress }),
           ...(farmType && { description: `Farm Type: ${farmType}` })
         }
       };
