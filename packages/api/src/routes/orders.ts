@@ -367,9 +367,11 @@ router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res) => 
     
     // If customer is viewing their own order, check if they've already reviewed all products
     if (req.user?.role === 'CUSTOMER' && order) {
-      // Get all product IDs from order items
-      const productIds = order.items.map((item: any) => item.product.id);
-      
+      // Get all product IDs from order items, filtering undefined/null values
+      const productIds = order.items
+        .map((item: any) => item?.product?.id)
+        .filter((id: any): id is string => typeof id === 'string' && id.length > 0);
+
       if (productIds.length > 0) {
         // Find all reviews by this user for these products
         const reviews = await prisma.productReview.findMany({
@@ -381,15 +383,15 @@ router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res) => 
             productId: true
           }
         });
-        
+
         const reviewedProductIds = new Set(reviews.map((r: any) => r.productId));
-        
-        // Mark each item as reviewed or not
+
+        // Mark each item as reviewed or not (be defensive if item.product is null)
         order.items = order.items.map((item: any) => ({
           ...item,
-          reviewed: reviewedProductIds.has(item.product.id)
+          reviewed: Boolean(item?.product?.id) && reviewedProductIds.has(item.product.id)
         }));
-        
+
         // Add a flag to indicate if all products in the order have been reviewed
         (order as any).reviewed = reviewedProductIds.size >= productIds.length;
       } else {
