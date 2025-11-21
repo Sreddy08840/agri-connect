@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -7,6 +7,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { api } from '../lib/api';
 import toast from 'react-hot-toast';
+import { initializeGoogleSignIn, handleGoogleSignIn } from '../lib/googleAuth';
 import ForgotPassword from '../components/ForgotPassword';
 import { Tractor, Leaf, Users, TrendingUp } from 'lucide-react';
 
@@ -116,6 +117,18 @@ export default function FarmerLoginPage() {
     startLoginMutation.mutate(payload);
   };
 
+  useEffect(() => {
+    if (step === 'credentials') {
+      const timer = setTimeout(() => {
+        initializeGoogleSignIn(handleGoogleSignInSuccess, (error) => {
+          console.log('Google Sign-In prompt error (farmer):', error);
+        });
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [step]);
+
   const onOTPSubmit = (data: OTPFormData) => {
     verifyOTPMutation.mutate(data);
   };
@@ -144,6 +157,28 @@ export default function FarmerLoginPage() {
   const handleForgotPasswordSuccess = () => {
     setStep('credentials');
     toast.success('You can now login with your new password');
+  };
+
+  const handleGoogleSignInSuccess = async (response: any) => {
+    try {
+      const result = await handleGoogleSignIn(response.credential);
+      if (result.success) {
+        // Ensure only farmers can login from this page
+        if (result.user?.role !== 'FARMER') {
+          toast.error('This login is for farmers only. Please use the regular login page.');
+          return;
+        }
+
+        setUser(result.user);
+        toast.success('Google sign-in successful!');
+        navigate('/farmer/dashboard', { replace: true });
+      } else {
+        toast.error(result.error || 'Google sign-in failed');
+      }
+    } catch (error) {
+      console.error('Google sign-in error:', error);
+      toast.error('Google sign-in failed');
+    }
   };
 
   return (
@@ -350,6 +385,19 @@ export default function FarmerLoginPage() {
                   <button type="button" className="text-sm font-medium text-amber-600 hover:text-amber-700 hover:underline transition-all" onClick={() => setStep('forgot')}>
                     Forgot password?
                   </button>
+                </div>
+                {/* Google Sign-In Button (renders via Google Identity Services) */}
+                <div className="w-full">
+                  <div id="google-signin-button" className="w-full"></div>
+                </div>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300" />
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-gray-50 text-gray-500">or</span>
+                  </div>
                 </div>
 
                 <button type="submit" className="w-full px-6 py-3.5 bg-gradient-to-r from-amber-600 to-orange-600 text-white hover:from-amber-700 hover:to-orange-700 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-0.5" disabled={startLoginMutation.isLoading}>

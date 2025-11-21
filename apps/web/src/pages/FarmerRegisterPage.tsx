@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation } from 'react-query';
 import { useAuthStore } from '../stores/authStore';
 import { api } from '../lib/api';
+import { initializeGoogleSignIn, handleGoogleSignIn } from '../lib/googleAuth';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import { Tractor, Leaf, Users, TrendingUp, Building } from 'lucide-react';
@@ -111,6 +112,38 @@ export default function FarmerRegisterPage() {
     startRegisterMutation.mutate(payload);
   };
   const onOTPSubmit = (data: OTPFormData) => verifyOTPMutation.mutate(data);
+
+  const handleGoogleSignUp = async (response: any) => {
+    try {
+      const result = await handleGoogleSignIn(response.credential);
+      if (result.success) {
+        if (result.user?.role !== 'FARMER') {
+          toast.error('This sign-up is for farmers only. Please use the regular sign-up page.');
+          return;
+        }
+        setUser(result.user);
+        toast.success('Google sign-up successful!');
+        window.location.href = '/farmer/profile';
+      } else {
+        toast.error(result.error || 'Google sign-up failed');
+      }
+    } catch (error) {
+      console.error('Google sign-up error:', error);
+      toast.error('Google sign-up failed');
+    }
+  };
+
+  useEffect(() => {
+    if (step === 'form') {
+      const timer = setTimeout(() => {
+        initializeGoogleSignIn(handleGoogleSignUp, (error) => {
+          console.log('Google Sign-Up prompt error (farmer):', error);
+        });
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [step]);
 
   const resendOTPMutation = useMutation(
     () => api.post('/auth/otp/request', email ? { email } : { phone }),
@@ -234,6 +267,25 @@ export default function FarmerRegisterPage() {
             </div>
 
             <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200 shadow-sm">
+            {step === 'form' && (
+              <>
+                {/* Google Sign-In Button */}
+                <div className="w-full mb-6">
+                  <div id="google-signin-button" className="w-full"></div>
+                </div>
+
+                <div className="relative mb-6">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-4 bg-gray-50 text-gray-500 font-medium">or create account with email/phone</span>
+                  </div>
+                </div>
+
+              </>
+            )}
+
             {step === 'form' ? (
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 {/* Personal Information */}
