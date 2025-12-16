@@ -388,26 +388,20 @@ export default function FarmerProfilePage() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Full Name</label>
-              <input 
-                {...form.register('name')} 
-                className="mt-1 w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500" 
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Email Address</label>
+              <label className="block text-sm font-medium text-gray-700">Please Email</label>
               <input 
                 type="email" 
                 {...form.register('email')} 
                 className="mt-1 w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                readOnly={!!user?.phone && !user?.email}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+              <label className="block text-sm font-medium text-gray-700">Please Phone No</label>
               <input 
                 {...form.register('phone')} 
                 className="mt-1 w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500" 
-                readOnly
+                readOnly={!!user?.email && !user?.phone}
               />
             </div>
             <div className="md:col-span-2">
@@ -431,13 +425,6 @@ export default function FarmerProfilePage() {
       ) : (
         <div className="grid md:grid-cols-2 gap-6">
           <div className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <User className="h-5 w-5 text-gray-400" />
-              <div>
-                <div className="text-sm text-gray-500">Full Name</div>
-                <div className="font-medium">{user?.name || 'Not provided'}</div>
-              </div>
-            </div>
             <div className="flex items-center space-x-3">
               <Mail className="h-5 w-5 text-gray-400" />
               <div>
