@@ -233,7 +233,7 @@ export default function CustomerProfilePage() {
             <div className="flex items-center space-x-3">
               <Mail className="h-5 w-5 text-gray-400" />
               <div>
-                <div className="text-sm text-gray-500">Email Address</div>
+                <div className="text-sm text-gray-500">Please Email</div>
                 <div className="font-medium">{user?.email || 'Not provided'}</div>
               </div>
             </div>
@@ -242,8 +242,8 @@ export default function CustomerProfilePage() {
             <div className="flex items-center space-x-3">
               <Phone className="h-5 w-5 text-gray-400" />
               <div>
-                <div className="text-sm text-gray-500">Phone Number</div>
-                <div className="font-medium">{user?.phone || user?.email || 'Not provided'}</div>
+                <div className="text-sm text-gray-500">Please Phone No</div>
+                <div className="font-medium">{user?.phone || 'Not provided'}</div>
               </div>
             </div>
             <div className="flex items-start space-x-3">
