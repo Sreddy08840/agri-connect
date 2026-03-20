@@ -644,7 +644,7 @@ cd packages/ml
 #### API Issues
 
 **Problem**: Database connection error
-```bash
+
 # Solution: Push schema again
 cd packages/api
 pnpm prisma db push
