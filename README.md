@@ -711,21 +711,6 @@ furnished to do so, subject to the following conditions...
 
 ---
 
-## 🆘 Support & Community
-
-### Get Help
-- **📧 Email**: [contact@agri-connect.dev](mailto:contact@agri-connect.dev)
-- **💬 Discord**: [Join our community](https://discord.gg/agri-connect)
-- **📖 Documentation**: [Full docs](https://docs.agri-connect.dev)
-- **🐛 Issues**: [GitHub Issues](https://github.com/Sreddy08840/agri-connect/issues)
-
-### Connect With Us
-- **Twitter**: [@AgriConnectDev](https://twitter.com/agriconnectdev)
-- **LinkedIn**: [Agri-Connect](https://linkedin.com/company/agri-connect)
-- **Website**: [agri-connect.dev](https://agri-connect.dev)
-
----
-
 ## 📊 Project Stats
 
 ```
