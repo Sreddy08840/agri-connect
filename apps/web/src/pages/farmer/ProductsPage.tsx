@@ -1,14 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useLocation } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { getProductMainImage } from '../../lib/imageUtils';
-import { Plus, Edit2 } from 'lucide-react';
+import { Plus, Edit2, Mic } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Button from '../../components/ui/Button';
 import ProductImageUpload from '../../components/ProductImageUpload';
+import { startVoiceRecognition, speakResponse } from '../../utils/speech';
+import VoiceWave from '../../components/ui/VoiceWave';
 
 const productSchema = z.object({
   name: z.string().min(1),
@@ -24,7 +27,55 @@ type ProductFormData = z.infer<typeof productSchema>;
 
 export default function FarmerProductsPage() {
   const queryClient = useQueryClient();
+  const location = useLocation();
   const [productImages, setProductImages] = useState<string[]>([]);
+  const [isListening, setIsListening] = useState(false);
+  const [recognizedText, setRecognizedText] = useState('');
+  const [parsedProduct, setParsedProduct] = useState<any>(null);
+
+  const handleVoiceInput = async () => {
+    try {
+      setRecognizedText('Listening...');
+      const text = await startVoiceRecognition(
+        () => setIsListening(true),
+        () => setIsListening(false),
+        (err) => toast.error(err)
+      );
+      if (text) {
+        setRecognizedText(text);
+        
+        try {
+          const response = await api.post('/ai/transcribe-product', { text });
+          const parsedData = response.data;
+          setParsedProduct(parsedData);
+          
+          // Auto-fill form
+          if (parsedData.name && parsedData.name !== 'Unknown Product') {
+            form.setValue('name', parsedData.name, { shouldValidate: true });
+          }
+          if (parsedData.stockQty > 0) {
+            form.setValue('stockQty', parsedData.stockQty, { shouldValidate: true });
+          }
+          if (parsedData.unit) {
+            form.setValue('unit', parsedData.unit, { shouldValidate: true });
+          }
+          if (parsedData.price > 0) {
+            form.setValue('price', parsedData.price, { shouldValidate: true });
+          }
+          
+          toast.success('Voice input processed! Form auto-filled.');
+          speakResponse('Product details added. Please confirm and submit.');
+        } catch (apiError) {
+          console.error('Transcription error:', apiError);
+          toast.error('Failed to parse product data');
+        }
+      } else {
+        setRecognizedText('');
+      }
+    } catch (e) {
+      setRecognizedText('');
+    }
+  };
   
   const scrollToForm = () => {
     document.getElementById('create-product-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -33,6 +84,26 @@ export default function FarmerProductsPage() {
     resolver: zodResolver(productSchema),
     defaultValues: { unit: 'kg', stockQty: 0, minOrderQty: 1 },
   });
+
+  // Auto-fill form from Voice AI navigation state
+  useEffect(() => {
+    const voiceData = (location.state as any)?.voiceData;
+    if (voiceData) {
+      if (voiceData.product) {
+        form.setValue('name', voiceData.product, { shouldValidate: true });
+      }
+      if (voiceData.quantity !== null && !isNaN(voiceData.quantity)) {
+        form.setValue('stockQty', voiceData.quantity, { shouldValidate: true });
+      }
+      if (voiceData.unit) {
+        form.setValue('unit', voiceData.unit, { shouldValidate: true });
+      }
+      toast.success('Form auto-filled from voice command!');
+      
+      // Clean up state so it doesn't trigger again on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, form]);
 
   const { data: categories } = useQuery(
     ['categories'],
@@ -151,9 +222,46 @@ export default function FarmerProductsPage() {
 
       {/* Upload / Create Product */}
       <div className="bg-white rounded-lg shadow" id="create-product-form">
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Add New Product</h2>
-          <Plus className="h-5 w-5 text-green-600" />
+        <div className="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-gray-900">Add New Product</h2>
+            <Plus className="h-5 w-5 text-green-600" />
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
+            {recognizedText && (
+              <div className="text-sm bg-gray-100 px-3 py-2 rounded-md italic text-gray-700 flex-1 sm:flex-none">
+                "{recognizedText}"
+              </div>
+            )}
+            {parsedProduct && (
+              <div className="text-sm bg-green-50 px-3 py-2 rounded-md text-green-700 flex-1 sm:flex-none">
+                <span className="font-semibold">Parsed:</span> {parsedProduct.name} - {parsedProduct.stockQty} {parsedProduct.unit} @ ₹{parsedProduct.price}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={handleVoiceInput}
+              disabled={isListening}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium transition-all duration-300 shadow-sm ${
+                isListening 
+                  ? 'bg-green-50 border border-green-200 text-green-700' 
+                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-green-50 hover:text-green-600 hover:border-green-200'
+              }`}
+            >
+              {isListening ? (
+                <>
+                  <VoiceWave isListening={isListening} />
+                  <span className="ml-1">Listening...</span>
+                </>
+              ) : (
+                <>
+                  <Mic className="h-5 w-5" />
+                  <span>Voice Input</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
         <form onSubmit={form.handleSubmit(onSubmit)} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>

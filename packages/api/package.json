@@ -15,10 +15,13 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx src/scripts/seed.ts",
     "db:studio": "prisma studio",
-    "backfill:events": "tsx src/scripts/backfill-events.ts"
+    "backfill:events": "tsx src/scripts/backfill-events.ts",
+    "seed:qdrant": "tsx src/scripts/seed-qdrant.ts"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^5.22.0",
+    "@qdrant/js-client-rest": "^1.17.0",
     "aws-sdk": "^2.1518.0",
     "bcryptjs": "^2.4.3",
     "bullmq": "^4.15.0",

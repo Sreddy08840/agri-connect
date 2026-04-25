@@ -48,6 +48,12 @@ A comprehensive marketplace platform that directly connects farmers and consumer
 | 🔐 **Verification** | Get verified as a trusted farmer |
 | 💰 **Direct Payouts** | Receive payments without middlemen |
 
+### 🎙️ Multilingual Voice AI Assistant
+- **Native Voice Support**: English, Hindi (हिन्दी), and Kannada (ಕನ್ನಡ)
+- **Conversational Actions**: Add products, search inventory, and check orders via voice
+- **High-Quality TTS**: Uses Azure Neural voices for natural, native speech
+- **AI-Powered Intent**: Powered by Groq (LLama-3) and Vapi for low-latency interactions
+
 ### ⚙️ For Admins
 | Feature | Description |
 |---------|-------------|

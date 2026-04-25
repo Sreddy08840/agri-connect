@@ -65,6 +65,8 @@ services:
     restart: unless-stopped
     command: npm run dev
 
+
+
 volumes:
   postgres_data:
   redis_data:

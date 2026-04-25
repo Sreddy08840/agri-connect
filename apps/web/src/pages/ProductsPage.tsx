@@ -4,9 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { getProductMainImage } from '../lib/imageUtils';
 // Button component removed - using HTML buttons
-import { Search, Filter, ShoppingCart } from 'lucide-react';
+import { Search, Filter, ShoppingCart, Mic } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCartStore } from '../stores/cartStore';
+import { startVoiceRecognition } from '../utils/speech';
+import VoiceWave from '../components/ui/VoiceWave';
 
 interface Product {
   id: string;
@@ -35,7 +37,23 @@ export default function ProductsPage() {
   const [category, setCategory] = useState('');
   const [sort, setSort] = useState('createdAt');
   const [order, setOrder] = useState<'asc' | 'desc'>('desc');
+  const [isListening, setIsListening] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
+
+  const handleVoiceSearch = async () => {
+    try {
+      const text = await startVoiceRecognition(
+        () => setIsListening(true),
+        () => setIsListening(false),
+        (err) => toast.error(err)
+      );
+      if (text) {
+        setSearch(text);
+      }
+    } catch (e) {
+      // Handled by callback
+    }
+  };
 
   const { data: productsData, isLoading } = useQuery(
     ['products', { search, category, sort, order }],
@@ -99,11 +117,25 @@ export default function ProductsPage() {
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search for fresh produce..."
+                placeholder={isListening ? "Listening..." : "Search for fresh produce..."}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border-2 border-farmer-beige-300 rounded-xl focus:ring-2 focus:ring-farmer-green-500 focus:border-farmer-green-500 transition-all duration-200 text-base"
+                className="w-full pl-12 pr-14 py-3 border-2 border-farmer-beige-300 rounded-xl focus:ring-2 focus:ring-farmer-green-500 focus:border-farmer-green-500 transition-all duration-200 text-base"
               />
+              {isListening ? (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 p-2">
+                  <VoiceWave isListening={isListening} />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleVoiceSearch}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 p-2 rounded-full transition-colors text-gray-400 hover:text-farmer-green-600 hover:bg-farmer-green-50"
+                  title="Search by voice"
+                >
+                  <Mic className="h-5 w-5" />
+                </button>
+              )}
             </div>
           </div>
           

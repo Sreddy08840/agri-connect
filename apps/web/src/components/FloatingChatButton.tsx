@@ -16,7 +16,7 @@ export default function FloatingChatButton() {
       {!showChat && (
         <button
           onClick={() => setShowChat(true)}
-          className="fixed bottom-6 right-6 z-40 h-14 w-14 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-full shadow-2xl hover:shadow-3xl hover:scale-110 transition-all duration-300 flex items-center justify-center group"
+          className="fixed bottom-[5.5rem] right-4 sm:bottom-[6.5rem] sm:right-6 z-40 h-14 w-14 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-full shadow-2xl hover:shadow-3xl hover:scale-110 transition-all duration-300 flex items-center justify-center group"
           aria-label="Open live chat"
         >
           <MessageCircle className="h-6 w-6 group-hover:scale-110 transition-transform" />

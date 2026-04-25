@@ -608,4 +608,104 @@ router.get('/health', async (req, res) => {
   }
 });
 
+// ============ VOICE ASSISTANT ============
+
+/**
+ * POST /api/ai/transcribe-product
+ * Extract product details from transcribed voice text
+ */
+router.post('/transcribe-product', authenticateToken, (req: AuthenticatedRequest, res) => {
+  try {
+    const { text } = req.body;
+
+    if (!text || typeof text !== 'string') {
+      return res.status(400).json({ error: 'Text input is required' });
+    }
+
+    const normalized = text.toLowerCase();
+    
+    // Logic to extract stockQty and unit
+    const qtyMatch = normalized.match(/(\d+)\s*(kg|kilo|kilos|gram|grams|g|liter|liters|l|piece|pieces|ton|tons)/);
+    const stockQty = qtyMatch ? parseInt(qtyMatch[1], 10) : 0;
+    let unit = qtyMatch ? qtyMatch[2] : 'unit';
+    
+    if (['kilo', 'kilos'].includes(unit)) unit = 'kg';
+    if (['gram', 'grams'].includes(unit)) unit = 'g';
+    if (['liter', 'liters'].includes(unit)) unit = 'l';
+    if (['piece', 'pieces'].includes(unit)) unit = 'pc';
+    if (['ton', 'tons'].includes(unit)) unit = 'ton';
+
+    // Logic to extract price
+    let price = 0;
+    const priceMatch = normalized.match(/(\d+)\s*(rupees?|rs|inr|₹)/) || 
+                       normalized.match(/(rupees?|rs|inr|₹)\s*(\d+)/);
+    if (priceMatch) {
+      const parsed1 = parseInt(priceMatch[1], 10);
+      const parsed2 = parseInt(priceMatch[2], 10);
+      price = !isNaN(parsed1) ? parsed1 : parsed2;
+    } else {
+      // Fallback: look for any number after the quantity number
+      const numbers = normalized.match(/\d+/g);
+      if (numbers && numbers.length > 1) {
+        // If qty is the first number, price might be the second
+        price = parseInt(numbers[1], 10);
+      }
+    }
+
+    // Logic to extract name
+    let name = 'Unknown Product';
+    
+    // Look for common agricultural products first
+    const commonProducts = [
+      'tomato', 'tomatoes', 'potato', 'potatoes', 'onion', 'onions', 
+      'apple', 'apples', 'banana', 'bananas', 'mango', 'mangoes', 
+      'wheat', 'rice', 'milk', 'carrot', 'carrots', 'cabbage', 'corn',
+      'ginger', 'garlic', 'spinach'
+    ];
+    
+    for (const p of commonProducts) {
+      if (normalized.includes(p)) {
+        // Singularize logic
+        let baseName = p;
+        if (p.endsWith('oes')) baseName = p.slice(0, -2);
+        else if (p.endsWith('s') && !['rice', 'milk', 'garlic'].includes(p)) baseName = p.slice(0, -1);
+        
+        name = baseName.charAt(0).toUpperCase() + baseName.slice(1);
+        break;
+      }
+    }
+
+    // If no common product found, try to extract words between qty and price
+    if (name === 'Unknown Product' && qtyMatch) {
+      const startIdx = qtyMatch.index! + qtyMatch[0].length;
+      let endIdx = normalized.length;
+      
+      const pMatch = normalized.match(/(\d+)\s*(rupees?|rs|inr|₹)/);
+      if (pMatch && pMatch.index! > startIdx) {
+        endIdx = pMatch.index!;
+      }
+      
+      let nameStr = text.substring(startIdx, endIdx)
+        .replace(/at|for|sell|buy|rupees|rs/ig, '')
+        .trim();
+        
+      if (nameStr) {
+        if (nameStr.toLowerCase().endsWith('oes')) nameStr = nameStr.slice(0, -2);
+        else if (nameStr.toLowerCase().endsWith('s') && !nameStr.toLowerCase().endsWith('ss')) nameStr = nameStr.slice(0, -1);
+        name = nameStr.charAt(0).toUpperCase() + nameStr.slice(1);
+      }
+    }
+
+    res.json({
+      name,
+      stockQty,
+      unit,
+      price
+    });
+  } catch (err) {
+    console.error('Transcribe product error:', err);
+    res.status(500).json({ error: 'internal_error' });
+  }
+});
+
 export default router;

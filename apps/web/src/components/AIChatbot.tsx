@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { queryChatbot } from '../lib/api/ai';
-import { MessageCircle, Send, X, Loader2, Bot } from 'lucide-react';
+import { MessageCircle, Send, X, Loader2, Bot, Mic } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
+import { startVoiceRecognition, speakResponse } from '../utils/speech';
+import VoiceWave from './ui/VoiceWave';
+import toast from 'react-hot-toast';
 
 interface Message {
   id: string;
@@ -23,14 +26,15 @@ export default function AIChatbot() {
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
 
-  const handleSend = async () => {
-    if (!input.trim() || loading) return;
+  const sendMessage = async (textToSend: string) => {
+    if (!textToSend.trim() || loading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       type: 'user',
-      content: input,
+      content: textToSend,
       timestamp: new Date(),
     };
 
@@ -39,7 +43,7 @@ export default function AIChatbot() {
     setLoading(true);
 
     try {
-      const response = await queryChatbot(input, user?.id);
+      const response = await queryChatbot(textToSend, user?.id);
       
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -49,6 +53,7 @@ export default function AIChatbot() {
       };
 
       setMessages((prev) => [...prev, botMessage]);
+      speakResponse(response.answer);
     } catch (error) {
       console.error('Chatbot error:', error);
       const errorMessage: Message = {
@@ -58,8 +63,26 @@ export default function AIChatbot() {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
+      speakResponse('Sorry, I encountered an error. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSend = () => sendMessage(input);
+
+  const handleVoiceInput = async () => {
+    try {
+      const text = await startVoiceRecognition(
+        () => setIsListening(true),
+        () => setIsListening(false),
+        (err) => toast.error(err)
+      );
+      if (text) {
+        await sendMessage(text);
+      }
+    } catch (e) {
+      // Handled by callback
     }
   };
 
@@ -141,10 +164,24 @@ export default function AIChatbot() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Ask me anything..."
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                disabled={loading}
+                placeholder={isListening ? "Listening..." : "Ask me anything..."}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
+                disabled={loading || isListening}
               />
+              {isListening ? (
+                <div className="p-2 h-[42px] flex items-center justify-center bg-green-50 rounded-lg border border-green-200 transition-all duration-300">
+                  <VoiceWave isListening={isListening} />
+                </div>
+              ) : (
+                <button
+                  onClick={handleVoiceInput}
+                  disabled={loading}
+                  className="p-2 h-[42px] flex items-center justify-center rounded-lg transition-all duration-300 bg-gray-100 text-gray-600 hover:bg-green-100 hover:text-green-600"
+                  title="Speak to Assistant"
+                >
+                  <Mic className="w-5 h-5" />
+                </button>
+              )}
               <button
                 onClick={handleSend}
                 disabled={!input.trim() || loading}

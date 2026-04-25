@@ -50,6 +50,9 @@ import FarmerAnalyticsPage from './pages/farmer/AnalyticsPage';
 import MainLayout from './components/layouts/MainLayout';
 import FarmerLayout from './components/layouts/FarmerLayout';
 
+// Voice AI Global Components
+import { VoiceWidget } from './features/voice';
+
 function App() {
   const { user, setUser, clearUser, isLoading, setLoading, isInitialized, setInitialized } = useAuthStore();
 
@@ -120,7 +123,8 @@ function App() {
   };
 
   return (
-    <Routes>
+    <>
+      <Routes>
       {/* Public + Customer Routes */}
       <Route path="/" element={<MainLayout />}>
         {/* Landing is public */}
@@ -173,6 +177,8 @@ function App() {
       </Route>
 
     </Routes>
+    <VoiceWidget />
+    </>
   );
 }
 
